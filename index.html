@@ -180,6 +180,11 @@
             color: #667eea;
         }
 
+        .filter-info {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea;
+        }
+
         input, select, textarea {
             transition: all 0.2s ease;
         }
@@ -289,12 +294,12 @@
                     </div>
                 </div>
 
-                <!-- User Selector -->
+                <!-- User Selector - Filtro por Responsável -->
                 <div class="flex items-center gap-3 flex-wrap">
                     <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-                        <i class="fas fa-user text-gray-500 text-sm"></i>
+                        <i class="fas fa-user-tie text-gray-500 text-sm"></i>
                         <select id="userSelect" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[200px]">
-                            <option value="">Selecione o responsável</option>
+                            <option value="">Todos os Responsáveis</option>
                         </select>
                     </div>
                     <div id="userBadge" class="hidden text-xs px-3 py-1.5 rounded-full font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white"></div>
@@ -331,6 +336,7 @@
                         </div>
                         <h2 class="text-2xl font-bold text-gray-800 mb-2">Upload da Base de Dados</h2>
                         <p class="text-gray-500 mb-6">Faça upload do arquivo Excel com os dados dos reparos</p>
+                        <p class="text-sm text-gray-400">⚠️ O sistema irá mapear automaticamente o técnico ao responsável</p>
                     </div>
 
                     <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 cursor-pointer hover:border-purple-400 transition">
@@ -364,6 +370,10 @@
                             Total: <span id="ticketsTotalCount" class="font-bold text-gray-800">0</span> reparos
                         </div>
                     </div>
+                    <div id="filterInfo" class="mb-4 p-3 rounded-lg filter-info hidden">
+                        <i class="fas fa-filter text-purple-600 mr-2"></i>
+                        <span id="filterText" class="text-sm text-gray-700"></span>
+                    </div>
                     <div id="ticketsList" class="table-container">
                         <div class="text-center py-12 text-gray-500">
                             <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
@@ -385,6 +395,10 @@
                         <button id="clearConcludedBtn" class="btn-secondary text-sm">
                             <i class="fas fa-trash-alt mr-1"></i>Limpar Histórico
                         </button>
+                    </div>
+                    <div id="concludedFilterInfo" class="mb-4 p-3 rounded-lg filter-info hidden">
+                        <i class="fas fa-filter text-purple-600 mr-2"></i>
+                        <span id="concludedFilterText" class="text-sm text-gray-700"></span>
                     </div>
                     <div id="concludedList" class="table-container">
                         <div class="text-center py-12 text-gray-500">
@@ -441,34 +455,80 @@
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
-        let vehicleNotDeliveredReasons = {}; // Store reasons for each vehicle
-        let reasonHistory = {}; // Store history of reason changes with timestamps
-        let currentUser = null;
+        let vehicleNotDeliveredReasons = {};
+        let reasonHistory = {};
+        let currentResponsavel = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
-        // Options for "Veículo não Entregue" dropdown
-        const deliveryReasonOptions = [
-            "Peça não Chegou",
-            "Consumidor não levou o veículo",
-            "Nova avaria",
-            "Peça errada / defeito",
-            "Agendamento sendo realizado",
-            "Chamado sem Carta Resposta",
-            "Caso Crítico",
-            "Outros"
-        ];
+        // Mapeamento correto de Técnico para Responsável e Equipe
+        const tecnicoResponsavelMap = new Map([
+            ["Alexandre Stassuk Munhoes", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["IGOR PILATI JUNG", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["Cláudio Ribas de Souza", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["Eduardo Rossi", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["FELIPE DOS REIS SOUZA", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["VICTOR RICARDO COCENZA", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["GUSTAVO MADUREIRA MAGALHAES", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Luis Henrique dos Santos Antochevis Machado", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["Isaque Alexandre Silveira de Souza", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Héricles Jadoski Gama", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Lauro Kalil Moreira Junior", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["EVERTON GEVAERD PABST", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Lucas Marcondes de Moraes", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["Gustavo Onofre Casali", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Robson De Oliveira", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Gabriel Eiael Mazzini Antunes", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["Victor Daniel Figueira Gaito", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["Lucas Alexandre Baruffi", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Eliton Mota", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["Adan Daniel Stec", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Richert José Assis de Mattos", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["Caue Buss", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Romaneli Silveira Junior", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Wanessa Gabriela Martins Daniel", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Augusto Trevisan Twardowski", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["Vinicius Antunes Martinelli dos Santos", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Wekslei Augusto Vezu", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["Fernando Henrique Tadim", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["Jeferson - Técnico", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["EIDIVAN SILVA DE MORAES", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Joabe Luiz Maciel", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["THIAGO ERENO NOBRE", { responsavel: "Nathalia", equipe: "LayOut time-3" }],
+            ["Nilton Sergio da Silva", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
+            ["MAYCON DOUGLAS MENEZES GOMES", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["Marcio Douglas Pereira", { responsavel: "Michelle", equipe: "LayOut time-2" }],
+            ["Edinaldo augusto silveira", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["CARLOS ALBERTO FRONZA GOMES", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["GEANLUCA DOS SANTOS LEONARDO", { responsavel: "Gisleine", equipe: "LayOut time-1" }],
+            ["GUSTAVO LUIZ ALAMINI", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }]
+        ]);
 
-        // Technicians data
-        const responsaveis = [
+        // Lista de responsáveis únicos para o filtro
+        const responsaveisList = [
             { value: "Gisleine", label: "Gisleine", equipe: "LayOut time-1" },
             { value: "Michelle", label: "Michelle", equipe: "LayOut time-2" },
             { value: "Nathalia", label: "Nathalia", equipe: "LayOut time-3" },
             { value: "Ana Cristina", label: "Ana Cristina", equipe: "LayOut time-4" }
         ];
 
-        const getEquipeByTecnico = (tecnico) => {
-            const found = responsaveis.find(r => r.value === tecnico);
+        // Função para obter responsável e equipe baseado no técnico
+        function getResponsavelAndEquipeByTecnico(tecnico) {
+            if (!tecnico || tecnico === "-") return { responsavel: null, equipe: null };
+            
+            // Tenta encontrar o técnico no mapa (case insensitive)
+            for (let [key, value] of tecnicoResponsavelMap.entries()) {
+                if (key.toLowerCase() === tecnico.toLowerCase()) {
+                    return value;
+                }
+            }
+            
+            return { responsavel: null, equipe: null };
+        }
+
+        // Função para obter equipe pelo responsável
+        const getEquipeByResponsavel = (responsavel) => {
+            const found = responsaveisList.find(r => r.value === responsavel);
             return found ? found.equipe : null;
         };
 
@@ -500,21 +560,17 @@
         function formatDate(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return null;
             
-            // If it's a number (Excel serial date)
             if (typeof dateValue === 'number' && dateValue > 40000) {
                 const date = new Date((dateValue - 25569) * 86400 * 1000);
                 return date;
             }
             
-            // If it's a string, try to parse
             if (typeof dateValue === 'string') {
-                // Try to parse as date string
                 const date = new Date(dateValue);
                 if (!isNaN(date.getTime())) {
                     return date;
                 }
                 
-                // Check if it's already in DD/MM/YYYY format
                 const parts = dateValue.split('/');
                 if (parts.length === 3) {
                     const day = parseInt(parts[0]);
@@ -527,11 +583,10 @@
                 }
             }
             
-            // Return null if can't parse
             return null;
         }
 
-        // Calculate days difference between activation date and today
+        // Calculate days difference
         function calculateDaysDifference(activationDate) {
             if (!activationDate || activationDate === "-") return null;
             
@@ -548,7 +603,6 @@
             return diffDays;
         }
 
-        // Get progress bar color based on days
         function getProgressBarColor(days) {
             if (days === null) return "progress-bar-red";
             if (days <= 10) return "progress-bar-green";
@@ -556,14 +610,12 @@
             return "progress-bar-red";
         }
 
-        // Get progress percentage (capped at 100%)
         function getProgressPercentage(days) {
             if (days === null) return 100;
             const percentage = (days / 30) * 100;
             return Math.min(percentage, 100);
         }
 
-        // Format date for display
         function formatDateDisplay(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return "-";
             
@@ -573,7 +625,6 @@
             return dateObj.toLocaleDateString('pt-BR');
         }
 
-        // Format timestamp for display
         function formatTimestamp(timestamp) {
             const date = new Date(timestamp);
             return date.toLocaleString('pt-BR', {
@@ -586,12 +637,11 @@
             });
         }
 
-        // Update reason for vehicle with timestamp
+        // Update reason for vehicle
         window.updateDeliveryReason = function(index, reason) {
             const timestamp = new Date().toISOString();
             vehicleNotDeliveredReasons[index] = reason;
             
-            // Store reason change history
             if (!reasonHistory[index]) {
                 reasonHistory[index] = [];
             }
@@ -606,14 +656,11 @@
             
             saveToStorage();
             
-            // Show feedback to user
             if (reason) {
-                const message = `Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`;
-                showNotification(message, 'success');
+                showNotification(`Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`, 'success');
             }
         };
         
-        // Show notification
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
@@ -624,7 +671,6 @@
             setTimeout(() => notification.remove(), 3000);
         }
 
-        // Show concluded details modal
         window.showConcludedDetails = function(index) {
             const row = concludedData[index];
             const modal = document.getElementById("detailsModal");
@@ -636,7 +682,9 @@
                         <h4 class="font-semibold text-gray-800 mb-3">Informações do Veículo</h4>
                         <div class="details-grid">
                             <div class="details-item"><span class="details-label">Placa:</span> ${row["Placa"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Cons.Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Responsável:</span> ${row["Responsável"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Equipe:</span> ${row["Equipe"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Oficina:</span> ${row["Oficina"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>
@@ -645,7 +693,6 @@
                     </div>
             `;
             
-            // Add reason information
             if (row["Veículo não Entregue"]) {
                 detailsHtml += `
                     <div class="bg-yellow-50 rounded-lg p-4">
@@ -655,7 +702,6 @@
                 `;
             }
             
-            // Add reason history if exists
             if (row["Histórico de Motivos"]) {
                 const history = JSON.parse(row["Histórico de Motivos"]);
                 if (history && history.length > 0) {
@@ -676,7 +722,6 @@
                 }
             }
             
-            // Add tickets information
             if (row["Tickets"]) {
                 const tickets = JSON.parse(row["Tickets"]);
                 if (tickets && tickets.length > 0) {
@@ -698,7 +743,6 @@
                 }
             }
             
-            // Add progress information
             const daysDiff = calculateDaysDifference(row["Data Aviso"]);
             if (daysDiff !== null) {
                 detailsHtml += `
@@ -723,15 +767,13 @@
             modal.classList.add("active");
         };
         
-        // Process Excel file with correct column mapping - Data Ativação na Coluna U (índice 20)
+        // Process Excel file
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // Convert to JSON with header: 1 to get raw array data
                 const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
                 
                 if (!rawData || rawData.length < 2) {
@@ -739,10 +781,8 @@
                     return;
                 }
                 
-                // Get headers (first row)
                 const headers = rawData[0];
                 
-                // Find column indices by name (case insensitive)
                 const findColumnIndex = (possibleNames) => {
                     for (let i = 0; i < headers.length; i++) {
                         const header = String(headers[i] || "").toLowerCase().trim();
@@ -754,27 +794,28 @@
                 };
                 
                 const placaIndex = findColumnIndex(["Placa", "placa"]);
-                const consTecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
+                const tecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
                 
-                // Column positions (0-based index)
-                // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15, Q=16, R=17, S=18, T=19, U=20
-                const oficinaIndex = 0;       // Coluna A
-                const dataAtivacaoIndex = 20;  // Coluna U
-                const marcaModeloIndex = 14;   // Coluna O
+                const oficinaIndex = 0;
+                const dataAtivacaoIndex = 20;
+                const marcaModeloIndex = 14;
                 
-                // Process data rows (skip header)
                 const jsonData = [];
                 for (let i = 1; i < rawData.length; i++) {
                     const row = rawData[i];
                     if (!row || row.length === 0) continue;
                     
-                    // Get raw date value from column U (index 20)
                     let rawDateValue = (dataAtivacaoIndex < row.length && row[dataAtivacaoIndex]) ? row[dataAtivacaoIndex] : "-";
                     let formattedDate = formatDateDisplay(rawDateValue);
                     
+                    const tecnicoNome = tecnicoIndex >= 0 && row[tecnicoIndex] ? String(row[tecnicoIndex]) : "-";
+                    const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
+                    
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
-                        "Cons.Técnico": consTecnicoIndex >= 0 && row[consTecnicoIndex] ? String(row[consTecnicoIndex]) : "-",
+                        "Cons.Técnico": tecnicoNome,
+                        "Responsável": responsavelInfo.responsavel || "-",
+                        "Equipe": responsavelInfo.equipe || "-",
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
                         "Data Aviso": formattedDate,
@@ -786,7 +827,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Todas as 9 colunas serão transferidas para concluídos`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Mapeamento de técnicos para responsáveis aplicado`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -802,9 +843,9 @@
             
             let ticketsHtml = `<p class="mb-3"><strong>Placa:</strong> ${row["Placa"] || "-"}</p>`;
             ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}<br>
-            <strong>Data Aviso:</strong> ${row["Data Aviso"] || "-"} | <strong>Cons.Técnico:</strong> ${row["Cons.Técnico"] || "-"}</p>`;
+            <strong>Data Aviso:</strong> ${row["Data Aviso"] || "-"} | <strong>Técnico:</strong> ${row["Cons.Técnico"] || "-"}<br>
+            <strong>Responsável:</strong> ${row["Responsável"] || "-"} | <strong>Equipe:</strong> ${row["Equipe"] || "-"}</p>`;
             
-            // Show reason history if exists
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 ticketsHtml += `<div class="mb-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
                 reasonHistory[index].forEach(entry => {
@@ -903,29 +944,23 @@
             renderTickets();
         };
         
-        // Conclude repair - transfer ALL 9 columns and associated data
+        // Conclude repair
         window.concludeRepair = function(index) {
-            // Create a complete copy of the row with ALL columns
             const row = { ...excelData[index] };
-            
-            // Add conclusion data with timestamp
             const conclusionTimestamp = new Date().toISOString();
             row.dataConclusao = conclusionTimestamp;
             row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
             
-            // Preserve the reason (Column 6 - Veículo não Entregue)
             if (vehicleNotDeliveredReasons[index]) {
                 row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
             } else {
                 row["Veículo não Entregue"] = "";
             }
             
-            // Preserve reason history
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
             }
             
-            // Preserve tickets with their timestamps
             if (ticketStorage[index] && ticketStorage[index].length > 0) {
                 row["Tickets"] = JSON.stringify(ticketStorage[index]);
                 row["Quantidade de Tickets"] = ticketStorage[index].length;
@@ -933,24 +968,20 @@
                 row["Quantidade de Tickets"] = 0;
             }
             
-            // Calculate and store final progress data
             const daysDiff = calculateDaysDifference(row["Data Aviso"]);
             if (daysDiff !== null) {
                 row["Dias desde Aviso"] = daysDiff;
                 row["Percentual do Prazo"] = `${Math.min(Math.round((daysDiff / 30) * 100), 100)}%`;
             }
             
-            // Add to concluded data
             concludedData.push(row);
             saveToStorage();
             
-            // Remove from active data
             excelData.splice(index, 1);
             delete ticketStorage[index];
             delete vehicleNotDeliveredReasons[index];
             delete reasonHistory[index];
             
-            // Re-index storages
             const newTicketStorage = {};
             Object.keys(ticketStorage).forEach(key => {
                 const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
@@ -977,7 +1008,7 @@
             renderConcluded();
             updateBadges();
             
-            showNotification(`Reparo da placa ${row["Placa"]} concluído! Todas as informações foram transferidas.`, 'success');
+            showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
         };
         
         window.deleteConcluded = function(index) {
@@ -990,14 +1021,20 @@
             }
         };
         
-        // Render tickets tab with progress bar column
+        // Render tickets tab with filter by responsável
         function renderTickets() {
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
+            const filterInfo = document.getElementById("filterInfo");
+            const filterText = document.getElementById("filterText");
             
             let filteredData = excelData;
-            if (currentTeam) {
-                filteredData = excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam);
+            if (currentResponsavel) {
+                filteredData = excelData.filter(row => row["Responsável"] === currentResponsavel);
+                filterInfo.classList.remove("hidden");
+                filterText.textContent = `Filtrando por responsável: ${currentResponsavel} | Total: ${filteredData.length} reparos`;
+            } else {
+                filterInfo.classList.add("hidden");
             }
             
             totalSpan.textContent = filteredData.length;
@@ -1006,7 +1043,7 @@
                 container.innerHTML = `
                     <div class="text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                        <p>Nenhum reparo em andamento</p>
+                        <p>Nenhum reparo em andamento${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p>
                         <p class="text-sm">Faça upload da base para começar</p>
                     </div>
                 `;
@@ -1018,7 +1055,9 @@
                     <thead>
                         <tr>
                             <th>Placa</th>
-                            <th>Cons.Técnico</th>
+                            <th>Técnico</th>
+                            <th>Responsável</th>
+                            <th>Equipe</th>
                             <th>Oficina</th>
                             <th>Marca/Modelo</th>
                             <th>Data Aviso</th>
@@ -1040,13 +1079,11 @@
                 if (status === "Em Andamento") statusClass = "status-progress";
                 if (status === "Aguardando") statusClass = "status-progress";
                 
-                // Calculate progress for 30 days
                 const daysDiff = calculateDaysDifference(row["Data Aviso"]);
                 const progressPercentage = getProgressPercentage(daysDiff);
                 const progressColor = getProgressBarColor(daysDiff);
                 const displayText = daysDiff !== null ? `${daysDiff} / 30 dias` : "Data inválida";
                 
-                // Create dropdown options
                 let optionsHtml = `<option value="">Selecione...</option>`;
                 deliveryReasonOptions.forEach(option => {
                     const selected = currentReason === option ? 'selected' : '';
@@ -1057,6 +1094,8 @@
                     <tr>
                         <td><strong>${row["Placa"] || "-"}</strong></td>
                         <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${row["Responsável"] || "-"}</td>
+                        <td>${row["Equipe"] || "-"}</td>
                         <td>${row["Oficina"] || "-"}</td>
                         <td>${row["Marca/Modelo"] || "-"}</td>
                         <td>${row["Data Aviso"] || "-"}</td>
@@ -1064,7 +1103,7 @@
                             <select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">
                                 ${optionsHtml}
                             </select>
-                          </td>
+                           </td>
                         <td><span class="status-badge ${statusClass}">${status}</span></td>
                         <td>
                             <div class="progress-container">
@@ -1072,7 +1111,7 @@
                                     <span class="progress-text">${displayText}</span>
                                 </div>
                             </div>
-                          </td>
+                           </td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
                                 <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
@@ -1080,29 +1119,35 @@
                             <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
                                 <i class="fas fa-check-circle"></i> Concluir
                             </button>
-                          </td>
+                           </td>
                       </tr>
                 `;
             });
             
-            html += "</tbody> </table>";
+            html += "</tbody> </div>";
             container.innerHTML = html;
         }
 
-        // Render concluded tab with ALL columns and view details option
+        // Render concluded tab with filter by responsável
         function renderConcluded() {
             const container = document.getElementById("concludedList");
+            const concludedFilterInfo = document.getElementById("concludedFilterInfo");
+            const concludedFilterText = document.getElementById("concludedFilterText");
             
             let filteredData = concludedData;
-            if (currentTeam) {
-                filteredData = concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam);
+            if (currentResponsavel) {
+                filteredData = concludedData.filter(item => item["Responsável"] === currentResponsavel);
+                concludedFilterInfo.classList.remove("hidden");
+                concludedFilterText.textContent = `Filtrando por responsável: ${currentResponsavel} | Total: ${filteredData.length} reparos concluídos`;
+            } else {
+                concludedFilterInfo.classList.add("hidden");
             }
             
             if (filteredData.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-12 text-gray-500">
                         <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
-                        <p>Nenhum reparo concluído ainda</p>
+                        <p>Nenhum reparo concluído${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p>
                     </div>
                 `;
                 return;
@@ -1113,7 +1158,9 @@
                     <thead>
                         <tr>
                             <th>Placa</th>
-                            <th>Cons.Técnico</th>
+                            <th>Técnico</th>
+                            <th>Responsável</th>
+                            <th>Equipe</th>
                             <th>Oficina</th>
                             <th>Marca/Modelo</th>
                             <th>Data Aviso</th>
@@ -1135,6 +1182,8 @@
                     <tr>
                         <td><strong>${row["Placa"] || "-"}</strong></td>
                         <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${row["Responsável"] || "-"}</td>
+                        <td>${row["Equipe"] || "-"}</td>
                         <td>${row["Oficina"] || "-"}</td>
                         <td>${row["Marca/Modelo"] || "-"}</td>
                         <td>${row["Data Aviso"] || "-"}</td>
@@ -1145,30 +1194,30 @@
                                 <i class="fas fa-info-circle"></i> Ver Detalhes
                             </button>
                             ${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}
-                         </td>
+                          </td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
                                 <i class="fas fa-trash-alt"></i> Remover
                             </button>
-                         </td>
-                    </tr>
+                          </td>
+                      </tr>
                 `;
             });
             
-            html += "</tbody> </table>";
+            html += "</tbody> </div>";
             container.innerHTML = html;
         }
         
-        // Handle user change
-        function handleUserChange() {
+        // Handle responsável change
+        function handleResponsavelChange() {
             const select = document.getElementById("userSelect");
-            currentUser = select.value || null;
+            currentResponsavel = select.value || null;
             
-            if (currentUser) {
-                const userData = responsaveis.find(r => r.value === currentUser);
+            if (currentResponsavel) {
+                const userData = responsaveisList.find(r => r.value === currentResponsavel);
                 currentTeam = userData ? userData.equipe : null;
                 const badge = document.getElementById("userBadge");
-                badge.textContent = `${currentUser} • ${currentTeam}`;
+                badge.textContent = `${currentResponsavel} • ${currentTeam}`;
                 badge.classList.remove("hidden");
             } else {
                 currentTeam = null;
@@ -1180,14 +1229,13 @@
             updateBadges();
         }
         
-        // Update UI badges
         function updateBadges() {
-            const filteredTickets = currentTeam 
-                ? excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam)
+            const filteredTickets = currentResponsavel 
+                ? excelData.filter(row => row["Responsável"] === currentResponsavel)
                 : excelData;
             
-            const filteredConcluded = currentTeam
-                ? concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam)
+            const filteredConcluded = currentResponsavel
+                ? concludedData.filter(item => item["Responsável"] === currentResponsavel)
                 : concludedData;
             
             const ticketsBadge = document.getElementById("ticketsBadge");
@@ -1208,22 +1256,32 @@
             }
         }
         
+        // Options for dropdown
+        const deliveryReasonOptions = [
+            "Peça não Chegou",
+            "Consumidor não levou o veículo",
+            "Nova avaria",
+            "Peça errada / defeito",
+            "Agendamento sendo realizado",
+            "Chamado sem Carta Resposta",
+            "Caso Crítico",
+            "Outros"
+        ];
+        
         // Initialize
         function init() {
             loadFromStorage();
             
-            // Populate user select
             const userSelect = document.getElementById("userSelect");
-            responsaveis.forEach(r => {
+            responsaveisList.forEach(r => {
                 const option = document.createElement("option");
                 option.value = r.value;
-                option.textContent = r.label;
+                option.textContent = `${r.label} (${r.equipe})`;
                 userSelect.appendChild(option);
             });
             
-            userSelect.addEventListener("change", handleUserChange);
+            userSelect.addEventListener("change", handleResponsavelChange);
             
-            // Tab switching
             document.querySelectorAll(".nav-tab").forEach(btn => {
                 btn.addEventListener("click", () => {
                     document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
@@ -1239,7 +1297,6 @@
                 });
             });
             
-            // File upload handlers
             const dropZone = document.getElementById("dropZone");
             const fileInput = document.getElementById("fileInput");
             
@@ -1282,7 +1339,6 @@
                 }
             });
             
-            // Modal close
             document.querySelectorAll(".closeModal").forEach(btn => {
                 btn.addEventListener("click", () => {
                     document.getElementById("ticketModal").classList.remove("active");
