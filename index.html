@@ -364,29 +364,42 @@
             localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
         }
 
-        // Format date properly
+        // Format date properly - supports Excel serial numbers and string dates
         function formatDate(dateValue) {
-            if (!dateValue || dateValue === "-") return "-";
+            if (!dateValue || dateValue === "-" || dateValue === "") return "-";
             
-            // Try to parse as Excel serial number
+            // If it's a number (Excel serial date)
             if (typeof dateValue === 'number' && dateValue > 40000) {
                 const date = new Date((dateValue - 25569) * 86400 * 1000);
                 return date.toLocaleDateString('pt-BR');
             }
             
-            // Try to parse as string date
-            try {
+            // If it's a string, try to parse
+            if (typeof dateValue === 'string') {
+                // Try to parse as date string
                 const date = new Date(dateValue);
                 if (!isNaN(date.getTime())) {
                     return date.toLocaleDateString('pt-BR');
                 }
-            } catch(e) {}
+                
+                // Check if it's already in DD/MM/YYYY format
+                const parts = dateValue.split('/');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1;
+                    const year = parseInt(parts[2]);
+                    const testDate = new Date(year, month, day);
+                    if (testDate.getDate() === day && testDate.getMonth() === month && testDate.getFullYear() === year) {
+                        return dateValue;
+                    }
+                }
+            }
             
-            // Return original value if can't parse
-            return dateValue;
+            // Return original if can't parse
+            return String(dateValue);
         }
 
-        // Process Excel file with new columns extraction
+        // Process Excel file with correct column mapping
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -419,9 +432,10 @@
                 const placaIndex = findColumnIndex(["Placa", "placa"]);
                 const consTecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
                 
-                // Extract columns by position (A=0, M=12, O=14)
+                // Column positions (0-based index)
+                // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14
                 const oficinaIndex = 0;      // Coluna A
-                const dataAtivacaoIndex = 12; // Coluna M
+                const dataAtivacaoIndex = 13; // Coluna N (corrigido)
                 const marcaModeloIndex = 14;  // Coluna O
                 
                 // Process data rows (skip header)
@@ -430,8 +444,8 @@
                     const row = rawData[i];
                     if (!row || row.length === 0) continue;
                     
-                    // Get raw date value
-                    let rawDateValue = row[dataAtivacaoIndex] || "-";
+                    // Get raw date value from column N (index 13)
+                    let rawDateValue = (dataAtivacaoIndex < row.length && row[dataAtivacaoIndex]) ? row[dataAtivacaoIndex] : "-";
                     let formattedDate = formatDate(rawDateValue);
                     
                     const item = {
@@ -441,7 +455,7 @@
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
                         "Data Ativação": formattedDate,
-                        // Keep original raw date for reference if needed
+                        // Keep original raw date for reference
                         "_rawDate": rawDateValue
                     };
                     
@@ -450,7 +464,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação (Coluna N)`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -577,7 +591,7 @@
             }
         };
         
-        // Render tickets tab (without OS and Veículo columns)
+        // Render tickets tab
         function renderTickets() {
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
@@ -648,7 +662,7 @@
             container.innerHTML = html;
         }
 
-        // Render concluded tab (without OS and Veículo columns)
+        // Render concluded tab
         function renderConcluded() {
             const container = document.getElementById("concludedList");
             
@@ -725,6 +739,34 @@
             renderTickets();
             renderConcluded();
             updateBadges();
+        }
+        
+        // Update UI badges
+        function updateBadges() {
+            const filteredTickets = currentTeam 
+                ? excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam)
+                : excelData;
+            
+            const filteredConcluded = currentTeam
+                ? concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam)
+                : concludedData;
+            
+            const ticketsBadge = document.getElementById("ticketsBadge");
+            const concludedBadge = document.getElementById("concludedBadge");
+            
+            if (filteredTickets.length > 0) {
+                ticketsBadge.textContent = filteredTickets.length;
+                ticketsBadge.classList.remove("hidden");
+            } else {
+                ticketsBadge.classList.add("hidden");
+            }
+            
+            if (filteredConcluded.length > 0) {
+                concludedBadge.textContent = filteredConcluded.length;
+                concludedBadge.classList.remove("hidden");
+            } else {
+                concludedBadge.classList.add("hidden");
+            }
         }
         
         // Initialize
