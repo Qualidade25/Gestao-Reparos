@@ -163,6 +163,12 @@
             white-space: nowrap;
         }
 
+        .ticket-timestamp {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
         input, select, textarea {
             transition: all 0.2s ease;
         }
@@ -393,6 +399,7 @@
         let concludedData = [];
         let ticketStorage = {};
         let vehicleNotDeliveredReasons = {}; // Store reasons for each vehicle
+        let reasonHistory = {}; // Store history of reason changes with timestamps
         let currentUser = null;
         let currentTeam = null;
         let currentEditIndex = null;
@@ -433,6 +440,9 @@
                 
                 const storedReasons = localStorage.getItem("vehicleNotDeliveredReasons");
                 if (storedReasons) vehicleNotDeliveredReasons = JSON.parse(storedReasons);
+                
+                const storedReasonHistory = localStorage.getItem("reasonHistory");
+                if (storedReasonHistory) reasonHistory = JSON.parse(storedReasonHistory);
             } catch(e) { console.error(e); }
         }
 
@@ -440,11 +450,12 @@
             localStorage.setItem("concludedRepairs", JSON.stringify(concludedData));
             localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
             localStorage.setItem("vehicleNotDeliveredReasons", JSON.stringify(vehicleNotDeliveredReasons));
+            localStorage.setItem("reasonHistory", JSON.stringify(reasonHistory));
         }
 
         // Format date properly - supports Excel serial numbers and string dates
         function formatDate(dateValue) {
-            if (!dateValue || dateValue === "-" || dateValue === "") return "-";
+            if (!dateValue || dateValue === "-" || dateValue === "") return null;
             
             // If it's a number (Excel serial date)
             if (typeof dateValue === 'number' && dateValue > 40000) {
@@ -519,11 +530,56 @@
             return dateObj.toLocaleDateString('pt-BR');
         }
 
-        // Update reason for vehicle
+        // Format timestamp for display
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // Update reason for vehicle with timestamp
         window.updateDeliveryReason = function(index, reason) {
+            const timestamp = new Date().toISOString();
             vehicleNotDeliveredReasons[index] = reason;
+            
+            // Store reason change history
+            if (!reasonHistory[index]) {
+                reasonHistory[index] = [];
+            }
+            
+            if (reason) {
+                reasonHistory[index].push({
+                    reason: reason,
+                    timestamp: timestamp,
+                    formattedTime: formatTimestamp(timestamp)
+                });
+            }
+            
             saveToStorage();
+            
+            // Show feedback to user
+            if (reason) {
+                const message = `Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`;
+                showNotification(message, 'success');
+            }
         };
+        
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            } fade-in`;
+            notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
 
         // Process Excel file with correct column mapping - Data Ativação na Coluna U (índice 20)
         function processExcelFile(file) {
@@ -580,7 +636,7 @@
                         // New columns extracted by position
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
-                        "Data Ativação": formattedDate,
+                        "Data Aviso": formattedDate,  // Renamed from "Data Ativação"
                         "_rawDate": rawDateValue
                     };
                     
@@ -589,7 +645,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação (Coluna U), Veículo não Entregue, 30 dd`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Aviso (Coluna U), Veículo não Entregue, 30 dd`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -605,7 +661,21 @@
             
             let ticketsHtml = `<p class="mb-3"><strong>Placa:</strong> ${row["Placa"] || "-"}</p>`;
             ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}<br>
-            <strong>Data Ativação:</strong> ${row["Data Ativação"] || "-"} | <strong>Cons.Técnico:</strong> ${row["Cons.Técnico"] || "-"}</p>`;
+            <strong>Data Aviso:</strong> ${row["Data Aviso"] || "-"} | <strong>Cons.Técnico:</strong> ${row["Cons.Técnico"] || "-"}</p>`;
+            
+            // Show reason history if exists
+            if (reasonHistory[index] && reasonHistory[index].length > 0) {
+                ticketsHtml += `<div class="mb-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
+                reasonHistory[index].forEach(entry => {
+                    ticketsHtml += `
+                        <div class="bg-blue-50 rounded-lg p-2 mb-2 text-xs">
+                            <span class="font-medium">${entry.reason}</span>
+                            <span class="text-gray-500 ml-2">${entry.formattedTime}</span>
+                        </div>
+                    `;
+                });
+                ticketsHtml += `</div>`;
+            }
             
             if (tickets.length > 0) {
                 ticketsHtml += `<div class="mb-4 max-h-60 overflow-y-auto"><h4 class="font-semibold mb-2">Tickets existentes:</h4>`;
@@ -613,12 +683,16 @@
                     ticketsHtml += `
                         <div class="bg-gray-50 rounded-lg p-3 mb-2">
                             <div class="flex justify-between items-start">
-                                <div>
+                                <div class="flex-1">
                                     <p class="font-medium">#${ticket.numero || i+1}</p>
                                     <p class="text-sm text-gray-600">${ticket.descricao || "Sem descrição"}</p>
                                     <p class="text-xs text-gray-400 mt-1">Status: <span class="font-medium">${ticket.status || "aberto"}</span></p>
+                                    <p class="ticket-timestamp">
+                                        <i class="far fa-clock mr-1"></i>
+                                        Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}
+                                    </p>
                                 </div>
-                                <button class="text-red-500 hover:text-red-700 text-sm" onclick="removeTicket(${i})">
+                                <button class="text-red-500 hover:text-red-700 text-sm ml-2" onclick="removeTicket(${i})">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
@@ -657,18 +731,22 @@
                 return;
             }
             
+            const timestamp = new Date().toISOString();
             const tickets = ticketStorage[currentEditIndex] || [];
             tickets.push({
                 numero: tickets.length + 1,
                 descricao: desc,
                 status: status,
-                data: new Date().toISOString()
+                data: timestamp,
+                formattedTime: formatTimestamp(timestamp)
             });
             
             ticketStorage[currentEditIndex] = tickets;
             saveToStorage();
             openTicketModal(currentEditIndex);
             renderTickets();
+            
+            showNotification(`Ticket #${tickets.length} adicionado em ${formatTimestamp(timestamp)}`, 'success');
         };
         
         window.removeTicket = function(ticketIndex) {
@@ -684,19 +762,38 @@
             renderTickets();
         };
         
-        // Conclude repair
+        // Conclude repair - transfer ALL columns
         window.concludeRepair = function(index) {
-            const row = { ...excelData[index], dataConclusao: new Date().toISOString() };
-            // Preserve the reason when moving to concluded
+            // Create a complete copy of the row with ALL columns
+            const row = { ...excelData[index] };
+            
+            // Add conclusion data
+            row.dataConclusao = new Date().toISOString();
+            row.dataConclusaoFormatada = new Date().toLocaleString('pt-BR');
+            
+            // Preserve the reason and reason history
             if (vehicleNotDeliveredReasons[index]) {
                 row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
             }
+            
+            if (reasonHistory[index]) {
+                row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
+            }
+            
+            // Preserve tickets
+            if (ticketStorage[index]) {
+                row["Tickets"] = JSON.stringify(ticketStorage[index]);
+            }
+            
+            // Add to concluded data
             concludedData.push(row);
             saveToStorage();
             
+            // Remove from active data
             excelData.splice(index, 1);
             delete ticketStorage[index];
             delete vehicleNotDeliveredReasons[index];
+            delete reasonHistory[index];
             
             // Re-index storages
             const newTicketStorage = {};
@@ -713,10 +810,19 @@
             });
             vehicleNotDeliveredReasons = newReasonsStorage;
             
+            const newHistoryStorage = {};
+            Object.keys(reasonHistory).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newHistoryStorage[newKey] = reasonHistory[key];
+            });
+            reasonHistory = newHistoryStorage;
+            
             saveToStorage();
             renderTickets();
             renderConcluded();
             updateBadges();
+            
+            showNotification(`Reparo da placa ${row["Placa"]} concluído com sucesso!`, 'success');
         };
         
         window.deleteConcluded = function(index) {
@@ -759,7 +865,7 @@
                             <th>Cons.Técnico</th>
                             <th>Oficina</th>
                             <th>Marca/Modelo</th>
-                            <th>Data Ativação</th>
+                            <th>Data Aviso</th>
                             <th>Veículo não Entregue</th>
                             <th>Status</th>
                             <th>30 dd</th>
@@ -779,7 +885,7 @@
                 if (status === "Aguardando") statusClass = "status-progress";
                 
                 // Calculate progress for 30 days
-                const daysDiff = calculateDaysDifference(row["Data Ativação"]);
+                const daysDiff = calculateDaysDifference(row["Data Aviso"]);
                 const progressPercentage = getProgressPercentage(daysDiff);
                 const progressColor = getProgressBarColor(daysDiff);
                 const displayText = daysDiff !== null ? `${daysDiff} / 30 dias` : "Data inválida";
@@ -797,12 +903,12 @@
                         <td>${row["Cons.Técnico"] || "-"}</td>
                         <td>${row["Oficina"] || "-"}</td>
                         <td>${row["Marca/Modelo"] || "-"}</td>
-                        <td>${row["Data Ativação"] || "-"}</td>
+                        <td>${row["Data Aviso"] || "-"}</td>
                         <td>
                             <select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">
                                 ${optionsHtml}
                             </select>
-                         </td>
+                          </td>
                         <td><span class="status-badge ${statusClass}">${status}</span></td>
                         <td>
                             <div class="progress-container">
@@ -810,7 +916,7 @@
                                     <span class="progress-text">${displayText}</span>
                                 </div>
                             </div>
-                         </td>
+                          </td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
                                 <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
@@ -818,8 +924,8 @@
                             <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
                                 <i class="fas fa-check-circle"></i> Concluir
                             </button>
-                         </td>
-                     </tr>
+                          </td>
+                      </tr>
                 `;
             });
             
@@ -827,7 +933,7 @@
             container.innerHTML = html;
         }
 
-        // Render concluded tab
+        // Render concluded tab with ALL columns
         function renderConcluded() {
             const container = document.getElementById("concludedList");
             
@@ -854,7 +960,7 @@
                             <th>Cons.Técnico</th>
                             <th>Oficina</th>
                             <th>Marca/Modelo</th>
-                            <th>Data Ativação</th>
+                            <th>Data Aviso</th>
                             <th>Veículo não Entregue</th>
                             <th>Data Conclusão</th>
                             <th>Ações</th>
@@ -865,15 +971,17 @@
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
+                const conclusaoDate = row.dataConclusaoFormatada || new Date(row.dataConclusao).toLocaleString('pt-BR');
+                
                 html += `
                     <tr>
                         <td><strong>${row["Placa"] || "-"}</strong></td>
                         <td>${row["Cons.Técnico"] || "-"}</td>
                         <td>${row["Oficina"] || "-"}</td>
                         <td>${row["Marca/Modelo"] || "-"}</td>
-                        <td>${row["Data Ativação"] || "-"}</td>
+                        <td>${row["Data Aviso"] || "-"}</td>
                         <td>${row["Veículo não Entregue"] || "-"}</td>
-                        <td>${new Date(row.dataConclusao).toLocaleDateString()}</td>
+                        <td>${conclusaoDate}</td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
                                 <i class="fas fa-trash-alt"></i> Remover
