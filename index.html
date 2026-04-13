@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Reparos - Acompanhamento de Oficinas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .nav-tab {
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: #6b7280;
+        }
+
+        .nav-tab:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: #1f2937;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-open {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .status-progress {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-concluded {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        input, select, textarea {
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            ring: 2px solid #667eea;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.75rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .drag-active {
+            border: 2px dashed #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-xl shadow-sm">
+            <div class="max-w-[98%] mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600">
+                        <i class="fas fa-wrench text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900 tracking-tight">Gestão de Reparos</h1>
+                        <p class="text-xs text-gray-500">Acompanhamento de Oficinas</p>
+                    </div>
+                </div>
+
+                <!-- User Selector -->
+                <div class="flex items-center gap-3 flex-wrap">
+                    <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+                        <i class="fas fa-user text-gray-500 text-sm"></i>
+                        <select id="userSelect" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[200px]">
+                            <option value="">Selecione o responsável</option>
+                        </select>
+                    </div>
+                    <div id="userBadge" class="hidden text-xs px-3 py-1.5 rounded-full font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-[98%] mx-auto px-4 py-6">
+            <!-- Tab Navigation -->
+            <div class="flex gap-1 mb-6 bg-gray-100/50 rounded-xl p-1 w-fit flex-wrap">
+                <button class="nav-tab active" data-tab="upload">
+                    <i class="fas fa-cloud-upload-alt mr-2"></i>
+                    <span>Upload da Base</span>
+                </button>
+                <button class="nav-tab" data-tab="tickets">
+                    <i class="fas fa-ticket-alt mr-2"></i>
+                    <span>Acompanhamento</span>
+                    <span id="ticketsBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
+                </button>
+                <button class="nav-tab" data-tab="concluded">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>Concluídos</span>
+                    <span id="concludedBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
+                </button>
+            </div>
+
+            <!-- Tab Content: Upload -->
+            <div id="uploadTab" class="tab-content fade-in">
+                <div class="glass-card p-8 text-center">
+                    <div class="mb-6">
+                        <div class="w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-file-excel text-4xl text-green-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Upload da Base de Dados</h2>
+                        <p class="text-gray-500 mb-6">Faça upload do arquivo Excel com os dados dos reparos</p>
+                    </div>
+
+                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 cursor-pointer hover:border-purple-400 transition">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-600">Arraste e solte o arquivo Excel aqui ou</p>
+                        <p class="text-purple-600 font-medium mt-2">Clique para selecionar</p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                    </div>
+
+                    <div id="uploadInfo" class="hidden">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                            <span id="fileName" class="text-green-800"></span>
+                        </div>
+                        <button id="processFileBtn" class="btn-primary px-8 py-3 text-lg">
+                            <i class="fas fa-arrow-right mr-2"></i>Processar e Ir para Acompanhamento
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Tickets (Acompanhamento) -->
+            <div id="ticketsTab" class="tab-content fade-in" style="display: none;">
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-ticket-alt text-purple-600 mr-2"></i>
+                            Acompanhamento de Reparos
+                        </h2>
+                        <div class="text-sm text-gray-500">
+                            Total: <span id="ticketsTotalCount" class="font-bold text-gray-800">0</span> reparos
+                        </div>
+                    </div>
+                    <div id="ticketsList" class="table-container">
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                            <p>Nenhum reparo em andamento</p>
+                            <p class="text-sm">Faça upload da base para começar</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Concluded -->
+            <div id="concludedTab" class="tab-content fade-in" style="display: none;">
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                            Reparos Concluídos
+                        </h2>
+                        <button id="clearConcludedBtn" class="btn-secondary text-sm">
+                            <i class="fas fa-trash-alt mr-1"></i>Limpar Histórico
+                        </button>
+                    </div>
+                    <div id="concludedList" class="table-container">
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
+                            <p>Nenhum reparo concluído ainda</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="border-t border-gray-200 py-4 mt-8">
+            <p class="text-center text-xs text-gray-500">
+                Gestão de Reparos — Sistema de Acompanhamento de Oficinas
+            </p>
+        </footer>
+    </div>
+
+    <!-- Modal para Tickets -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-ticket-alt text-purple-600 mr-2"></i>
+                    Gerenciar Ticket
+                </h3>
+                <button class="closeModal text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data stores
+        let excelData = [];
+        let concludedData = [];
+        let ticketStorage = {};
+        let currentUser = null;
+        let currentTeam = null;
+        let currentEditIndex = null;
+
+        // Technicians data
+        const responsaveis = [
+            { value: "João Silva", label: "João Silva", equipe: "Elétrica" },
+            { value: "Maria Santos", label: "Maria Santos", equipe: "Mecânica" },
+            { value: "Carlos Oliveira", label: "Carlos Oliveira", equipe: "Lataria" },
+            { value: "Ana Costa", label: "Ana Costa", equipe: "Pintura" },
+            { value: "Roberto Alves", label: "Roberto Alves", equipe: "Suspensão" }
+        ];
+
+        const getEquipeByTecnico = (tecnico) => {
+            const found = responsaveis.find(r => r.value === tecnico);
+            return found ? found.equipe : null;
+        };
+
+        // Load from localStorage
+        function loadFromStorage() {
+            try {
+                const storedConcluded = localStorage.getItem("concludedRepairs");
+                if (storedConcluded) concludedData = JSON.parse(storedConcluded);
+                
+                const storedTickets = localStorage.getItem("vehicleTickets");
+                if (storedTickets) ticketStorage = JSON.parse(storedTickets);
+            } catch(e) { console.error(e); }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem("concludedRepairs", JSON.stringify(concludedData));
+            localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
+        }
+
+        // Update UI badges
+        function updateBadges() {
+            const filteredTickets = currentTeam 
+                ? excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam)
+                : excelData;
+            
+            const filteredConcluded = currentTeam
+                ? concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam)
+                : concludedData;
+            
+            const ticketsBadge = document.getElementById("ticketsBadge");
+            const concludedBadge = document.getElementById("concludedBadge");
+            
+            if (filteredTickets.length > 0) {
+                ticketsBadge.textContent = filteredTickets.length;
+                ticketsBadge.classList.remove("hidden");
+            } else {
+                ticketsBadge.classList.add("hidden");
+            }
+            
+            if (filteredConcluded.length > 0) {
+                concludedBadge.textContent = filteredConcluded.length;
+                concludedBadge.classList.remove("hidden");
+            } else {
+                concludedBadge.classList.add("hidden");
+            }
+        }
+
+        // Render tickets tab
+        function renderTickets() {
+            const container = document.getElementById("ticketsList");
+            const totalSpan = document.getElementById("ticketsTotalCount");
+            
+            let filteredData = excelData;
+            if (currentTeam) {
+                filteredData = excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam);
+            }
+            
+            totalSpan.textContent = filteredData.length;
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                        <p>Nenhum reparo em andamento</p>
+                        <p class="text-sm">Faça upload da base para começar</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr><th>OS</th><th>Placa</th><th>Veículo</th><th>Cons.Técnico</th><th>Status</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filteredData.forEach((row, idx) => {
+                const originalIndex = excelData.findIndex((r, i) => r === row);
+                const tickets = ticketStorage[originalIndex] || [];
+                const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
+                let statusClass = "status-open";
+                if (status === "Em Andamento") statusClass = "status-progress";
+                if (status === "Aguardando") statusClass = "status-progress";
+                
+                html += `
+                    <tr>
+                        <td>${row["OS"] || "-"}</td>
+                        <td><strong>${row["Placa"] || "-"}</strong></td>
+                        <td>${row["Veículo"] || "-"}</td>
+                        <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
+                                <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
+                            </button>
+                            <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
+                                <i class="fas fa-check-circle"></i> Concluir
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
+
+        // Render concluded tab
+        function renderConcluded() {
+            const container = document.getElementById("concludedList");
+            
+            let filteredData = concludedData;
+            if (currentTeam) {
+                filteredData = concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam);
+            }
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
+                        <p>Nenhum reparo concluído ainda</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr><th>OS</th><th>Placa</th><th>Veículo</th><th>Cons.Técnico</th><th>Data Conclusão</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filteredData.forEach((row, idx) => {
+                const originalIndex = concludedData.findIndex((r, i) => r === row);
+                html += `
+                    <tr>
+                        <td>${row["OS"] || "-"}</td>
+                        <td><strong>${row["Placa"] || "-"}</strong></td>
+                        <td>${row["Veículo"] || "-"}</td>
+                        <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${new Date(row.dataConclusao).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
+                                <i class="fas fa-trash-alt"></i> Remover
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
+
+        // Open ticket modal
+        window.openTicketModal = function(index) {
+            currentEditIndex = index;
+            const row = excelData[index];
+            const tickets = ticketStorage[index] || [];
+            const modal = document.getElementById("ticketModal");
+            const modalBody = document.getElementById("modalBody");
+            
+            let ticketsHtml = `<p class="mb-3"><strong>Veículo:</strong> ${row["Veículo"] || "-"} (${row["Placa"] || "-"})</p>`;
+            
+            if (tickets.length > 0) {
+                ticketsHtml += `<div class="mb-4 max-h-60 overflow-y-auto"><h4 class="font-semibold mb-2">Tickets existentes:</h4>`;
+                tickets.forEach((ticket, i) => {
+                    ticketsHtml += `
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-medium">#${ticket.numero || i+1}</p>
+                                    <p class="text-sm text-gray-600">${ticket.descricao || "Sem descrição"}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Status: <span class="font-medium">${ticket.status || "aberto"}</span></p>
+                                </div>
+                                <button class="text-red-500 hover:text-red-700 text-sm" onclick="removeTicket(${i})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                ticketsHtml += `</div>`;
+            }
+            
+            ticketsHtml += `
+                <div class="mt-4">
+                    <label class="block text-sm font-medium mb-2">Novo Ticket:</label>
+                    <textarea id="ticketDesc" class="w-full border rounded-lg p-2" rows="3" placeholder="Descreva o problema ou serviço..."></textarea>
+                    <div class="flex gap-2 mt-3">
+                        <select id="ticketStatus" class="border rounded-lg p-2 flex-1">
+                            <option value="aberto">Aberto</option>
+                            <option value="andamento">Em Andamento</option>
+                        </select>
+                        <button onclick="addTicket()" class="btn-primary">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modalBody.innerHTML = ticketsHtml;
+            modal.classList.add("active");
+        };
+        
+        window.addTicket = function() {
+            const desc = document.getElementById("ticketDesc").value;
+            const status = document.getElementById("ticketStatus").value;
+            
+            if (!desc.trim()) {
+                alert("Por favor, descreva o ticket");
+                return;
+            }
+            
+            const tickets = ticketStorage[currentEditIndex] || [];
+            tickets.push({
+                numero: tickets.length + 1,
+                descricao: desc,
+                status: status,
+                data: new Date().toISOString()
+            });
+            
+            ticketStorage[currentEditIndex] = tickets;
+            saveToStorage();
+            openTicketModal(currentEditIndex);
+            renderTickets();
+        };
+        
+        window.removeTicket = function(ticketIndex) {
+            const tickets = ticketStorage[currentEditIndex];
+            tickets.splice(ticketIndex, 1);
+            if (tickets.length === 0) {
+                delete ticketStorage[currentEditIndex];
+            } else {
+                ticketStorage[currentEditIndex] = tickets;
+            }
+            saveToStorage();
+            openTicketModal(currentEditIndex);
+            renderTickets();
+        };
+        
+        // Conclude repair
+        window.concludeRepair = function(index) {
+            const row = { ...excelData[index], dataConclusao: new Date().toISOString() };
+            concludedData.push(row);
+            saveToStorage();
+            
+            excelData.splice(index, 1);
+            delete ticketStorage[index];
+            
+            // Re-index ticketStorage
+            const newTicketStorage = {};
+            Object.keys(ticketStorage).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newTicketStorage[newKey] = ticketStorage[key];
+            });
+            ticketStorage = newTicketStorage;
+            
+            saveToStorage();
+            renderTickets();
+            renderConcluded();
+            updateBadges();
+        };
+        
+        window.deleteConcluded = function(index) {
+            if (confirm("Remover este reparo do histórico?")) {
+                concludedData.splice(index, 1);
+                saveToStorage();
+                renderConcluded();
+                updateBadges();
+            }
+        };
+        
+        // Process Excel file
+        function processExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                excelData = jsonData.map(row => ({
+                    "OS": row["OS"] || row["os"] || "-",
+                    "Placa": row["Placa"] || row["placa"] || "-",
+                    "Veículo": row["Veículo"] || row["veiculo"] || row["Veiculo"] || "-",
+                    "Cons.Técnico": row["Cons.Técnico"] || row["cons.tecnico"] || row["Técnico"] || "-"
+                }));
+                
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros)`;
+                document.getElementById("uploadInfo").classList.remove("hidden");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // Handle user change
+        function handleUserChange() {
+            const select = document.getElementById("userSelect");
+            currentUser = select.value || null;
+            
+            if (currentUser) {
+                const userData = responsaveis.find(r => r.value === currentUser);
+                currentTeam = userData ? userData.equipe : null;
+                const badge = document.getElementById("userBadge");
+                badge.textContent = `${currentUser} • ${currentTeam}`;
+                badge.classList.remove("hidden");
+            } else {
+                currentTeam = null;
+                document.getElementById("userBadge").classList.add("hidden");
+            }
+            
+            renderTickets();
+            renderConcluded();
+            updateBadges();
+        }
+        
+        // Initialize
+        function init() {
+            loadFromStorage();
+            
+            // Populate user select
+            const userSelect = document.getElementById("userSelect");
+            responsaveis.forEach(r => {
+                const option = document.createElement("option");
+                option.value = r.value;
+                option.textContent = r.label;
+                userSelect.appendChild(option);
+            });
+            
+            userSelect.addEventListener("change", handleUserChange);
+            
+            // Tab switching
+            document.querySelectorAll(".nav-tab").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    
+                    const tabId = btn.dataset.tab;
+                    document.getElementById("uploadTab").style.display = tabId === "upload" ? "block" : "none";
+                    document.getElementById("ticketsTab").style.display = tabId === "tickets" ? "block" : "none";
+                    document.getElementById("concludedTab").style.display = tabId === "concluded" ? "block" : "none";
+                    
+                    if (tabId === "tickets") renderTickets();
+                    if (tabId === "concluded") renderConcluded();
+                });
+            });
+            
+            // File upload handlers
+            const dropZone = document.getElementById("dropZone");
+            const fileInput = document.getElementById("fileInput");
+            
+            dropZone.addEventListener("click", () => fileInput.click());
+            dropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                dropZone.classList.add("drag-active");
+            });
+            dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-active"));
+            dropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                dropZone.classList.remove("drag-active");
+                const file = e.dataTransfer.files[0];
+                if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) {
+                    processExcelFile(file);
+                } else {
+                    alert("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
+                }
+            });
+            
+            fileInput.addEventListener("change", (e) => {
+                if (e.target.files[0]) processExcelFile(e.target.files[0]);
+            });
+            
+            document.getElementById("processFileBtn").addEventListener("click", () => {
+                if (excelData.length > 0) {
+                    document.querySelector(".nav-tab[data-tab='tickets']").click();
+                    renderTickets();
+                    updateBadges();
+                }
+            });
+            
+            document.getElementById("clearConcludedBtn").addEventListener("click", () => {
+                if (confirm("Limpar todo o histórico de reparos concluídos?")) {
+                    concludedData = [];
+                    saveToStorage();
+                    renderConcluded();
+                    updateBadges();
+                }
+            });
+            
+            // Modal close
+            document.querySelectorAll(".closeModal").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.getElementById("ticketModal").classList.remove("active");
+                });
+            });
+            document.getElementById("ticketModal").addEventListener("click", (e) => {
+                if (e.target === document.getElementById("ticketModal")) {
+                    document.getElementById("ticketModal").classList.remove("active");
+                }
+            });
+            
+            renderTickets();
+            renderConcluded();
+            updateBadges();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
