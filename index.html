@@ -418,7 +418,17 @@
             let html = `
                 <table>
                     <thead>
-                        <tr><th>OS</th><th>Placa</th><th>Veículo</th><th>Cons.Técnico</th><th>Status</th><th>Ações</th></tr>
+                        <tr>
+                            <th>OS</th>
+                            <th>Placa</th>
+                            <th>Veículo</th>
+                            <th>Cons.Técnico</th>
+                            <th>Oficina</th>
+                            <th>Marca/Modelo</th>
+                            <th>Data Ativação</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
                     </thead>
                     <tbody>
             `;
@@ -437,6 +447,9 @@
                         <td><strong>${row["Placa"] || "-"}</strong></td>
                         <td>${row["Veículo"] || "-"}</td>
                         <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${row["Oficina"] || "-"}</td>
+                        <td>${row["Marca/Modelo"] || "-"}</td>
+                        <td>${row["Data Ativação"] || "-"}</td>
                         <td><span class="status-badge ${statusClass}">${status}</span></td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
@@ -476,7 +489,17 @@
             let html = `
                 <table>
                     <thead>
-                        <tr><th>OS</th><th>Placa</th><th>Veículo</th><th>Cons.Técnico</th><th>Data Conclusão</th><th>Ações</th></tr>
+                        <tr>
+                            <th>OS</th>
+                            <th>Placa</th>
+                            <th>Veículo</th>
+                            <th>Cons.Técnico</th>
+                            <th>Oficina</th>
+                            <th>Marca/Modelo</th>
+                            <th>Data Ativação</th>
+                            <th>Data Conclusão</th>
+                            <th>Ações</th>
+                        </tr>
                     </thead>
                     <tbody>
             `;
@@ -489,6 +512,9 @@
                         <td><strong>${row["Placa"] || "-"}</strong></td>
                         <td>${row["Veículo"] || "-"}</td>
                         <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${row["Oficina"] || "-"}</td>
+                        <td>${row["Marca/Modelo"] || "-"}</td>
+                        <td>${row["Data Ativação"] || "-"}</td>
                         <td>${new Date(row.dataConclusao).toLocaleDateString()}</td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
@@ -503,6 +529,74 @@
             container.innerHTML = html;
         }
 
+        // Process Excel file with new columns extraction
+        function processExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                
+                // Convert to JSON with header: 1 to get raw array data
+                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                if (!rawData || rawData.length < 2) {
+                    alert("Arquivo vazio ou formato inválido");
+                    return;
+                }
+                
+                // Get headers (first row)
+                const headers = rawData[0];
+                
+                // Find column indices by name (case insensitive)
+                const findColumnIndex = (possibleNames) => {
+                    for (let i = 0; i < headers.length; i++) {
+                        const header = String(headers[i] || "").toLowerCase().trim();
+                        if (possibleNames.some(name => header === name.toLowerCase())) {
+                            return i;
+                        }
+                    }
+                    return -1;
+                };
+                
+                const osIndex = findColumnIndex(["OS", "os"]);
+                const placaIndex = findColumnIndex(["Placa", "placa"]);
+                const veiculoIndex = findColumnIndex(["Veículo", "veículo", "veiculo"]);
+                const consTecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
+                
+                // Extract columns by position (A=0, M=12, O=14)
+                const oficinaIndex = 0;      // Coluna A
+                const dataAtivacaoIndex = 12; // Coluna M
+                const marcaModeloIndex = 14;  // Coluna O
+                
+                // Process data rows (skip header)
+                const jsonData = [];
+                for (let i = 1; i < rawData.length; i++) {
+                    const row = rawData[i];
+                    if (!row || row.length === 0) continue;
+                    
+                    const item = {
+                        "OS": osIndex >= 0 && row[osIndex] ? String(row[osIndex]) : "-",
+                        "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]) : "-",
+                        "Veículo": veiculoIndex >= 0 && row[veiculoIndex] ? String(row[veiculoIndex]) : "-",
+                        "Cons.Técnico": consTecnicoIndex >= 0 && row[consTecnicoIndex] ? String(row[consTecnicoIndex]) : "-",
+                        // New columns extracted by position
+                        "Oficina": row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
+                        "Marca/Modelo": row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
+                        "Data Ativação": row[dataAtivacaoIndex] ? String(row[dataAtivacaoIndex]) : "-"
+                    };
+                    
+                    jsonData.push(item);
+                }
+                
+                excelData = jsonData;
+                
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas adicionadas: Oficina, Marca/Modelo, Data Ativação`;
+                document.getElementById("uploadInfo").classList.remove("hidden");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
         // Open ticket modal
         window.openTicketModal = function(index) {
             currentEditIndex = index;
@@ -512,6 +606,7 @@
             const modalBody = document.getElementById("modalBody");
             
             let ticketsHtml = `<p class="mb-3"><strong>Veículo:</strong> ${row["Veículo"] || "-"} (${row["Placa"] || "-"})</p>`;
+            ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}</p>`;
             
             if (tickets.length > 0) {
                 ticketsHtml += `<div class="mb-4 max-h-60 overflow-y-auto"><h4 class="font-semibold mb-2">Tickets existentes:</h4>`;
@@ -621,28 +716,6 @@
                 updateBadges();
             }
         };
-        
-        // Process Excel file
-        function processExcelFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                
-                excelData = jsonData.map(row => ({
-                    "OS": row["OS"] || row["os"] || "-",
-                    "Placa": row["Placa"] || row["placa"] || "-",
-                    "Veículo": row["Veículo"] || row["veiculo"] || row["Veiculo"] || "-",
-                    "Cons.Técnico": row["Cons.Técnico"] || row["cons.tecnico"] || row["Técnico"] || "-"
-                }));
-                
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros)`;
-                document.getElementById("uploadInfo").classList.remove("hidden");
-            };
-            reader.readAsArrayBuffer(file);
-        }
         
         // Handle user change
         function handleUserChange() {
