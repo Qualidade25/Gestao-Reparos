@@ -169,6 +169,17 @@
             margin-top: 0.25rem;
         }
 
+        .concluded-details {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+            cursor: pointer;
+        }
+
+        .concluded-details:hover {
+            color: #667eea;
+        }
+
         input, select, textarea {
             transition: all 0.2s ease;
         }
@@ -226,7 +237,7 @@
         .modal-content {
             background: white;
             border-radius: 1rem;
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -244,6 +255,22 @@
 
         .fade-in {
             animation: fadeIn 0.3s ease;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .details-item {
+            font-size: 0.75rem;
+        }
+
+        .details-label {
+            font-weight: 600;
+            color: #374151;
         }
     </style>
 </head>
@@ -390,6 +417,22 @@
                 </button>
             </div>
             <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Modal para Detalhes do Concluído -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-info-circle text-green-600 mr-2"></i>
+                    Detalhes do Reparo Concluído
+                </h3>
+                <button class="closeDetailsModal text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="detailsModalBody"></div>
         </div>
     </div>
 
@@ -581,6 +624,105 @@
             setTimeout(() => notification.remove(), 3000);
         }
 
+        // Show concluded details modal
+        window.showConcludedDetails = function(index) {
+            const row = concludedData[index];
+            const modal = document.getElementById("detailsModal");
+            const modalBody = document.getElementById("detailsModalBody");
+            
+            let detailsHtml = `
+                <div class="space-y-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-3">Informações do Veículo</h4>
+                        <div class="details-grid">
+                            <div class="details-item"><span class="details-label">Placa:</span> ${row["Placa"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Cons.Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Oficina:</span> ${row["Oficina"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Data Conclusão:</span> ${row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao)}</div>
+                        </div>
+                    </div>
+            `;
+            
+            // Add reason information
+            if (row["Veículo não Entregue"]) {
+                detailsHtml += `
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">Motivo da Não Entrega</h4>
+                        <p class="text-gray-700">${row["Veículo não Entregue"]}</p>
+                    </div>
+                `;
+            }
+            
+            // Add reason history if exists
+            if (row["Histórico de Motivos"]) {
+                const history = JSON.parse(row["Histórico de Motivos"]);
+                if (history && history.length > 0) {
+                    detailsHtml += `
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">Histórico de Motivos</h4>
+                            <div class="space-y-2">
+                    `;
+                    history.forEach(entry => {
+                        detailsHtml += `
+                            <div class="text-sm">
+                                <span class="font-medium">${entry.reason}</span>
+                                <span class="text-gray-500 ml-2">${entry.formattedTime}</span>
+                            </div>
+                        `;
+                    });
+                    detailsHtml += `</div></div>`;
+                }
+            }
+            
+            // Add tickets information
+            if (row["Tickets"]) {
+                const tickets = JSON.parse(row["Tickets"]);
+                if (tickets && tickets.length > 0) {
+                    detailsHtml += `
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">Tickets (${tickets.length})</h4>
+                            <div class="space-y-3">
+                    `;
+                    tickets.forEach(ticket => {
+                        detailsHtml += `
+                            <div class="border-b border-purple-200 pb-2 last:border-0">
+                                <div class="font-medium text-sm">#${ticket.numero} - ${ticket.status}</div>
+                                <div class="text-sm text-gray-700 mt-1">${ticket.descricao}</div>
+                                <div class="text-xs text-gray-500 mt-1">Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</div>
+                            </div>
+                        `;
+                    });
+                    detailsHtml += `</div></div>`;
+                }
+            }
+            
+            // Add progress information
+            const daysDiff = calculateDaysDifference(row["Data Aviso"]);
+            if (daysDiff !== null) {
+                detailsHtml += `
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">Prazo de Entrega</h4>
+                        <div class="details-item">
+                            <span class="details-label">Dias desde o aviso:</span> ${daysDiff} dias
+                        </div>
+                        <div class="mt-2">
+                            <div class="progress-container">
+                                <div class="progress-bar ${getProgressBarColor(daysDiff)}" style="width: ${Math.min((daysDiff / 30) * 100, 100)}%;">
+                                    <span class="progress-text">${daysDiff} / 30 dias</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            detailsHtml += `</div>`;
+            modalBody.innerHTML = detailsHtml;
+            modal.classList.add("active");
+        };
+        
         // Process Excel file with correct column mapping - Data Ativação na Coluna U (índice 20)
         function processExcelFile(file) {
             const reader = new FileReader();
@@ -633,10 +775,9 @@
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
                         "Cons.Técnico": consTecnicoIndex >= 0 && row[consTecnicoIndex] ? String(row[consTecnicoIndex]) : "-",
-                        // New columns extracted by position
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
-                        "Data Aviso": formattedDate,  // Renamed from "Data Ativação"
+                        "Data Aviso": formattedDate,
                         "_rawDate": rawDateValue
                     };
                     
@@ -645,7 +786,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Aviso (Coluna U), Veículo não Entregue, 30 dd`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Todas as 9 colunas serão transferidas para concluídos`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -762,27 +903,41 @@
             renderTickets();
         };
         
-        // Conclude repair - transfer ALL columns
+        // Conclude repair - transfer ALL 9 columns and associated data
         window.concludeRepair = function(index) {
             // Create a complete copy of the row with ALL columns
             const row = { ...excelData[index] };
             
-            // Add conclusion data
-            row.dataConclusao = new Date().toISOString();
-            row.dataConclusaoFormatada = new Date().toLocaleString('pt-BR');
+            // Add conclusion data with timestamp
+            const conclusionTimestamp = new Date().toISOString();
+            row.dataConclusao = conclusionTimestamp;
+            row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
             
-            // Preserve the reason and reason history
+            // Preserve the reason (Column 6 - Veículo não Entregue)
             if (vehicleNotDeliveredReasons[index]) {
                 row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
+            } else {
+                row["Veículo não Entregue"] = "";
             }
             
-            if (reasonHistory[index]) {
+            // Preserve reason history
+            if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
             }
             
-            // Preserve tickets
-            if (ticketStorage[index]) {
+            // Preserve tickets with their timestamps
+            if (ticketStorage[index] && ticketStorage[index].length > 0) {
                 row["Tickets"] = JSON.stringify(ticketStorage[index]);
+                row["Quantidade de Tickets"] = ticketStorage[index].length;
+            } else {
+                row["Quantidade de Tickets"] = 0;
+            }
+            
+            // Calculate and store final progress data
+            const daysDiff = calculateDaysDifference(row["Data Aviso"]);
+            if (daysDiff !== null) {
+                row["Dias desde Aviso"] = daysDiff;
+                row["Percentual do Prazo"] = `${Math.min(Math.round((daysDiff / 30) * 100), 100)}%`;
             }
             
             // Add to concluded data
@@ -822,15 +977,16 @@
             renderConcluded();
             updateBadges();
             
-            showNotification(`Reparo da placa ${row["Placa"]} concluído com sucesso!`, 'success');
+            showNotification(`Reparo da placa ${row["Placa"]} concluído! Todas as informações foram transferidas.`, 'success');
         };
         
         window.deleteConcluded = function(index) {
-            if (confirm("Remover este reparo do histórico?")) {
+            if (confirm("Remover este reparo do histórico permanentemente?")) {
                 concludedData.splice(index, 1);
                 saveToStorage();
                 renderConcluded();
                 updateBadges();
+                showNotification("Reparo removido do histórico!", 'success');
             }
         };
         
@@ -929,11 +1085,11 @@
                 `;
             });
             
-            html += "</tbody></table>";
+            html += "</tbody> </table>";
             container.innerHTML = html;
         }
 
-        // Render concluded tab with ALL columns
+        // Render concluded tab with ALL columns and view details option
         function renderConcluded() {
             const container = document.getElementById("concludedList");
             
@@ -963,6 +1119,7 @@
                             <th>Data Aviso</th>
                             <th>Veículo não Entregue</th>
                             <th>Data Conclusão</th>
+                            <th>Detalhes</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -971,7 +1128,8 @@
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
-                const conclusaoDate = row.dataConclusaoFormatada || new Date(row.dataConclusao).toLocaleString('pt-BR');
+                const conclusaoDate = row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao);
+                const hasTickets = row["Quantidade de Tickets"] > 0;
                 
                 html += `
                     <tr>
@@ -983,15 +1141,21 @@
                         <td>${row["Veículo não Entregue"] || "-"}</td>
                         <td>${conclusaoDate}</td>
                         <td>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showConcludedDetails(${originalIndex})">
+                                <i class="fas fa-info-circle"></i> Ver Detalhes
+                            </button>
+                            ${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}
+                         </td>
+                        <td>
                             <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
                                 <i class="fas fa-trash-alt"></i> Remover
                             </button>
-                        </td>
+                         </td>
                     </tr>
                 `;
             });
             
-            html += "</tbody></table>";
+            html += "</tbody> </table>";
             container.innerHTML = html;
         }
         
@@ -1109,11 +1273,12 @@
             });
             
             document.getElementById("clearConcludedBtn").addEventListener("click", () => {
-                if (confirm("Limpar todo o histórico de reparos concluídos?")) {
+                if (confirm("Limpar todo o histórico de reparos concluídos? Esta ação não pode ser desfeita.")) {
                     concludedData = [];
                     saveToStorage();
                     renderConcluded();
                     updateBadges();
+                    showNotification("Histórico de concluídos limpo!", 'success');
                 }
             });
             
@@ -1123,9 +1288,22 @@
                     document.getElementById("ticketModal").classList.remove("active");
                 });
             });
+            
+            document.querySelectorAll(".closeDetailsModal").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.getElementById("detailsModal").classList.remove("active");
+                });
+            });
+            
             document.getElementById("ticketModal").addEventListener("click", (e) => {
                 if (e.target === document.getElementById("ticketModal")) {
                     document.getElementById("ticketModal").classList.remove("active");
+                }
+            });
+            
+            document.getElementById("detailsModal").addEventListener("click", (e) => {
+                if (e.target === document.getElementById("detailsModal")) {
+                    document.getElementById("detailsModal").classList.remove("active");
                 }
             });
             
