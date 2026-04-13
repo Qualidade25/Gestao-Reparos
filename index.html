@@ -80,6 +80,21 @@
             background: #e5e7eb;
         }
 
+        .btn-warning {
+            background: #fef3c7;
+            color: #d97706;
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid #fde68a;
+            cursor: pointer;
+        }
+
+        .btn-warning:hover {
+            background: #fde68a;
+        }
+
         .status-badge {
             padding: 0.25rem 0.75rem;
             border-radius: 2rem;
@@ -123,7 +138,6 @@
             border-color: #667eea;
         }
 
-        /* Progress Bar Styles */
         .progress-container {
             width: 100%;
             background-color: #f3f4f6;
@@ -169,20 +183,23 @@
             margin-top: 0.25rem;
         }
 
-        .concluded-details {
-            font-size: 0.7rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
-            cursor: pointer;
-        }
-
-        .concluded-details:hover {
-            color: #667eea;
-        }
-
         .filter-info {
             background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
             border-left: 4px solid #667eea;
+        }
+
+        .upload-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: #f9fafb;
+            transform: translateX(5px);
         }
 
         input, select, textarea {
@@ -286,15 +303,14 @@
             <div class="max-w-[98%] mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600">
-                        <i class="fas fa-wrench text-white text-lg"></i>
+                        <i class="fas fa-database text-white text-lg"></i>
                     </div>
                     <div>
                         <h1 class="text-lg font-bold text-gray-900 tracking-tight">Gestão de Reparos</h1>
-                        <p class="text-xs text-gray-500">Acompanhamento de Oficinas</p>
+                        <p class="text-xs text-gray-500">Sistema Acumulativo de Acompanhamento</p>
                     </div>
                 </div>
 
-                <!-- User Selector - Filtro por Responsável -->
                 <div class="flex items-center gap-3 flex-wrap">
                     <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
                         <i class="fas fa-user-tie text-gray-500 text-sm"></i>
@@ -303,13 +319,15 @@
                         </select>
                     </div>
                     <div id="userBadge" class="hidden text-xs px-3 py-1.5 rounded-full font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white"></div>
+                    <button id="clearAllDataBtn" class="btn-warning text-sm">
+                        <i class="fas fa-trash-alt mr-1"></i>Limpar Todos os Dados
+                    </button>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="max-w-[98%] mx-auto px-4 py-6">
-            <!-- Tab Navigation -->
             <div class="flex gap-1 mb-6 bg-gray-100/50 rounded-xl p-1 w-fit flex-wrap">
                 <button class="nav-tab active" data-tab="upload">
                     <i class="fas fa-cloud-upload-alt mr-2"></i>
@@ -329,28 +347,47 @@
 
             <!-- Tab Content: Upload -->
             <div id="uploadTab" class="tab-content fade-in">
-                <div class="glass-card p-8 text-center">
-                    <div class="mb-6">
+                <div class="glass-card p-8">
+                    <div class="text-center mb-6">
                         <div class="w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
                             <i class="fas fa-file-excel text-4xl text-green-600"></i>
                         </div>
                         <h2 class="text-2xl font-bold text-gray-800 mb-2">Upload da Base de Dados</h2>
                         <p class="text-gray-500 mb-6">Faça upload do arquivo Excel com os dados dos reparos</p>
-                        <p class="text-sm text-gray-400">⚠️ O sistema irá mapear automaticamente o técnico ao responsável</p>
+                        <p class="text-sm text-blue-600 bg-blue-50 p-2 rounded-lg inline-block">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Os dados serão ACUMULADOS com os existentes
+                        </p>
                     </div>
 
-                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 cursor-pointer hover:border-purple-400 transition">
+                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 cursor-pointer hover:border-purple-400 transition text-center">
                         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
                         <p class="text-gray-600">Arraste e solte o arquivo Excel aqui ou</p>
                         <p class="text-purple-600 font-medium mt-2">Clique para selecionar</p>
                         <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
                     </div>
 
-                    <div id="uploadInfo" class="hidden">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div id="uploadInfo" class="hidden mb-6">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                             <i class="fas fa-check-circle text-green-600 mr-2"></i>
                             <span id="fileName" class="text-green-800"></span>
                         </div>
+                    </div>
+
+                    <div id="uploadHistory" class="mt-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-history text-purple-600 mr-2"></i>
+                            Histórico de Uploads
+                        </h3>
+                        <div id="uploadHistoryList" class="upload-history space-y-2">
+                            <div class="text-center text-gray-500 py-4">
+                                <i class="fas fa-inbox text-2xl mb-2 opacity-50 block"></i>
+                                Nenhum upload realizado ainda
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-center">
                         <button id="processFileBtn" class="btn-primary px-8 py-3 text-lg">
                             <i class="fas fa-arrow-right mr-2"></i>Processar e Ir para Acompanhamento
                         </button>
@@ -367,7 +404,7 @@
                             Acompanhamento de Reparos
                         </h2>
                         <div class="text-sm text-gray-500">
-                            Total: <span id="ticketsTotalCount" class="font-bold text-gray-800">0</span> reparos
+                            Total em Aberto: <span id="ticketsTotalCount" class="font-bold text-gray-800">0</span> reparos
                         </div>
                     </div>
                     <div id="filterInfo" class="mb-4 p-3 rounded-lg filter-info hidden">
@@ -393,7 +430,7 @@
                             Reparos Concluídos
                         </h2>
                         <button id="clearConcludedBtn" class="btn-secondary text-sm">
-                            <i class="fas fa-trash-alt mr-1"></i>Limpar Histórico
+                            <i class="fas fa-trash-alt mr-1"></i>Limpar Concluídos
                         </button>
                     </div>
                     <div id="concludedFilterInfo" class="mb-4 p-3 rounded-lg filter-info hidden">
@@ -410,15 +447,13 @@
             </div>
         </main>
 
-        <!-- Footer -->
         <footer class="border-t border-gray-200 py-4 mt-8">
             <p class="text-center text-xs text-gray-500">
-                Gestão de Reparos — Sistema de Acompanhamento de Oficinas
+                Gestão de Reparos — Sistema Acumulativo de Acompanhamento de Oficinas
             </p>
         </footer>
     </div>
 
-    <!-- Modal para Tickets -->
     <div id="ticketModal" class="modal">
         <div class="modal-content p-6">
             <div class="flex justify-between items-center mb-4">
@@ -434,7 +469,6 @@
         </div>
     </div>
 
-    <!-- Modal para Detalhes do Concluído -->
     <div id="detailsModal" class="modal">
         <div class="modal-content p-6">
             <div class="flex justify-between items-center mb-4">
@@ -451,17 +485,18 @@
     </div>
 
     <script>
-        // Data stores
+        // Data stores - ACUMULATIVOS
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
         let vehicleNotDeliveredReasons = {};
         let reasonHistory = {};
+        let uploadHistory = [];
         let currentResponsavel = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
-        // Mapeamento correto de Técnico para Responsável e Equipe
+        // Mapeamento de Técnico para Responsável e Equipe
         const tecnicoResponsavelMap = new Map([
             ["Alexandre Stassuk Munhoes", { responsavel: "Michelle", equipe: "LayOut time-2" }],
             ["IGOR PILATI JUNG", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
@@ -504,7 +539,6 @@
             ["GUSTAVO LUIZ ALAMINI", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }]
         ]);
 
-        // Lista de responsáveis únicos para o filtro
         const responsaveisList = [
             { value: "Gisleine", label: "Gisleine", equipe: "LayOut time-1" },
             { value: "Michelle", label: "Michelle", equipe: "LayOut time-2" },
@@ -512,29 +546,37 @@
             { value: "Ana Cristina", label: "Ana Cristina", equipe: "LayOut time-4" }
         ];
 
-        // Função para obter responsável e equipe baseado no técnico
+        const deliveryReasonOptions = [
+            "Peça não Chegou",
+            "Consumidor não levou o veículo",
+            "Nova avaria",
+            "Peça errada / defeito",
+            "Agendamento sendo realizado",
+            "Chamado sem Carta Resposta",
+            "Caso Crítico",
+            "Outros"
+        ];
+
         function getResponsavelAndEquipeByTecnico(tecnico) {
             if (!tecnico || tecnico === "-") return { responsavel: null, equipe: null };
-            
-            // Tenta encontrar o técnico no mapa (case insensitive)
             for (let [key, value] of tecnicoResponsavelMap.entries()) {
                 if (key.toLowerCase() === tecnico.toLowerCase()) {
                     return value;
                 }
             }
-            
             return { responsavel: null, equipe: null };
         }
 
-        // Função para obter equipe pelo responsável
         const getEquipeByResponsavel = (responsavel) => {
             const found = responsaveisList.find(r => r.value === responsavel);
             return found ? found.equipe : null;
         };
 
-        // Load from localStorage
         function loadFromStorage() {
             try {
+                const storedData = localStorage.getItem("excelData");
+                if (storedData) excelData = JSON.parse(storedData);
+                
                 const storedConcluded = localStorage.getItem("concludedRepairs");
                 if (storedConcluded) concludedData = JSON.parse(storedConcluded);
                 
@@ -546,31 +588,30 @@
                 
                 const storedReasonHistory = localStorage.getItem("reasonHistory");
                 if (storedReasonHistory) reasonHistory = JSON.parse(storedReasonHistory);
+                
+                const storedUploadHistory = localStorage.getItem("uploadHistory");
+                if (storedUploadHistory) uploadHistory = JSON.parse(storedUploadHistory);
             } catch(e) { console.error(e); }
         }
 
         function saveToStorage() {
+            localStorage.setItem("excelData", JSON.stringify(excelData));
             localStorage.setItem("concludedRepairs", JSON.stringify(concludedData));
             localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
             localStorage.setItem("vehicleNotDeliveredReasons", JSON.stringify(vehicleNotDeliveredReasons));
             localStorage.setItem("reasonHistory", JSON.stringify(reasonHistory));
+            localStorage.setItem("uploadHistory", JSON.stringify(uploadHistory));
         }
 
-        // Format date properly - supports Excel serial numbers and string dates
         function formatDate(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return null;
-            
             if (typeof dateValue === 'number' && dateValue > 40000) {
                 const date = new Date((dateValue - 25569) * 86400 * 1000);
                 return date;
             }
-            
             if (typeof dateValue === 'string') {
                 const date = new Date(dateValue);
-                if (!isNaN(date.getTime())) {
-                    return date;
-                }
-                
+                if (!isNaN(date.getTime())) return date;
                 const parts = dateValue.split('/');
                 if (parts.length === 3) {
                     const day = parseInt(parts[0]);
@@ -582,25 +623,18 @@
                     }
                 }
             }
-            
             return null;
         }
 
-        // Calculate days difference
         function calculateDaysDifference(activationDate) {
             if (!activationDate || activationDate === "-") return null;
-            
             const dateObj = formatDate(activationDate);
             if (!dateObj || isNaN(dateObj.getTime())) return null;
-            
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             dateObj.setHours(0, 0, 0, 0);
-            
             const diffTime = today - dateObj;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            return diffDays;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
 
         function getProgressBarColor(days) {
@@ -612,66 +646,44 @@
 
         function getProgressPercentage(days) {
             if (days === null) return 100;
-            const percentage = (days / 30) * 100;
-            return Math.min(percentage, 100);
+            return Math.min((days / 30) * 100, 100);
         }
 
         function formatDateDisplay(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return "-";
-            
             const dateObj = formatDate(dateValue);
             if (!dateObj || isNaN(dateObj.getTime())) return String(dateValue);
-            
             return dateObj.toLocaleDateString('pt-BR');
         }
 
         function formatTimestamp(timestamp) {
             const date = new Date(timestamp);
             return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
         }
 
-        // Update reason for vehicle
-        window.updateDeliveryReason = function(index, reason) {
+        function updateDeliveryReason(index, reason) {
             const timestamp = new Date().toISOString();
             vehicleNotDeliveredReasons[index] = reason;
-            
-            if (!reasonHistory[index]) {
-                reasonHistory[index] = [];
-            }
-            
+            if (!reasonHistory[index]) reasonHistory[index] = [];
             if (reason) {
-                reasonHistory[index].push({
-                    reason: reason,
-                    timestamp: timestamp,
-                    formattedTime: formatTimestamp(timestamp)
-                });
+                reasonHistory[index].push({ reason, timestamp, formattedTime: formatTimestamp(timestamp) });
             }
-            
             saveToStorage();
-            
-            if (reason) {
-                showNotification(`Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`, 'success');
-            }
-        };
-        
+            if (reason) showNotification(`Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`, 'success');
+        }
+
         function showNotification(message, type) {
             const notification = document.createElement('div');
-            notification.className = `fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-            } fade-in`;
+            notification.className = `fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
             notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }
 
-        window.showConcludedDetails = function(index) {
+        function showConcludedDetails(index) {
             const row = concludedData[index];
             const modal = document.getElementById("detailsModal");
             const modalBody = document.getElementById("detailsModalBody");
@@ -694,29 +706,15 @@
             `;
             
             if (row["Veículo não Entregue"]) {
-                detailsHtml += `
-                    <div class="bg-yellow-50 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-800 mb-2">Motivo da Não Entrega</h4>
-                        <p class="text-gray-700">${row["Veículo não Entregue"]}</p>
-                    </div>
-                `;
+                detailsHtml += `<div class="bg-yellow-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Motivo da Não Entrega</h4><p class="text-gray-700">${row["Veículo não Entregue"]}</p></div>`;
             }
             
             if (row["Histórico de Motivos"]) {
                 const history = JSON.parse(row["Histórico de Motivos"]);
                 if (history && history.length > 0) {
-                    detailsHtml += `
-                        <div class="bg-blue-50 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-800 mb-2">Histórico de Motivos</h4>
-                            <div class="space-y-2">
-                    `;
+                    detailsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos</h4><div class="space-y-2">`;
                     history.forEach(entry => {
-                        detailsHtml += `
-                            <div class="text-sm">
-                                <span class="font-medium">${entry.reason}</span>
-                                <span class="text-gray-500 ml-2">${entry.formattedTime}</span>
-                            </div>
-                        `;
+                        detailsHtml += `<div class="text-sm"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-2">${entry.formattedTime}</span></div>`;
                     });
                     detailsHtml += `</div></div>`;
                 }
@@ -725,19 +723,9 @@
             if (row["Tickets"]) {
                 const tickets = JSON.parse(row["Tickets"]);
                 if (tickets && tickets.length > 0) {
-                    detailsHtml += `
-                        <div class="bg-purple-50 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-800 mb-2">Tickets (${tickets.length})</h4>
-                            <div class="space-y-3">
-                    `;
+                    detailsHtml += `<div class="bg-purple-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Tickets (${tickets.length})</h4><div class="space-y-3">`;
                     tickets.forEach(ticket => {
-                        detailsHtml += `
-                            <div class="border-b border-purple-200 pb-2 last:border-0">
-                                <div class="font-medium text-sm">#${ticket.numero} - ${ticket.status}</div>
-                                <div class="text-sm text-gray-700 mt-1">${ticket.descricao}</div>
-                                <div class="text-xs text-gray-500 mt-1">Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</div>
-                            </div>
-                        `;
+                        detailsHtml += `<div class="border-b border-purple-200 pb-2 last:border-0"><div class="font-medium text-sm">#${ticket.numero} - ${ticket.status}</div><div class="text-sm text-gray-700 mt-1">${ticket.descricao}</div><div class="text-xs text-gray-500 mt-1">Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</div></div>`;
                     });
                     detailsHtml += `</div></div>`;
                 }
@@ -745,29 +733,15 @@
             
             const daysDiff = calculateDaysDifference(row["Data Aviso"]);
             if (daysDiff !== null) {
-                detailsHtml += `
-                    <div class="bg-green-50 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-800 mb-2">Prazo de Entrega</h4>
-                        <div class="details-item">
-                            <span class="details-label">Dias desde o aviso:</span> ${daysDiff} dias
-                        </div>
-                        <div class="mt-2">
-                            <div class="progress-container">
-                                <div class="progress-bar ${getProgressBarColor(daysDiff)}" style="width: ${Math.min((daysDiff / 30) * 100, 100)}%;">
-                                    <span class="progress-text">${daysDiff} / 30 dias</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                detailsHtml += `<div class="bg-green-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Prazo de Entrega</h4><div class="details-item"><span class="details-label">Dias desde o aviso:</span> ${daysDiff} dias</div><div class="mt-2"><div class="progress-container"><div class="progress-bar ${getProgressBarColor(daysDiff)}" style="width: ${Math.min((daysDiff / 30) * 100, 100)}%;"><span class="progress-text">${daysDiff} / 30 dias</span></div></div></div></div>`;
             }
             
             detailsHtml += `</div>`;
             modalBody.innerHTML = detailsHtml;
             modal.classList.add("active");
-        };
-        
-        // Process Excel file
+        }
+
+        // Process Excel file - ACUMULA dados
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -782,25 +756,21 @@
                 }
                 
                 const headers = rawData[0];
-                
                 const findColumnIndex = (possibleNames) => {
                     for (let i = 0; i < headers.length; i++) {
                         const header = String(headers[i] || "").toLowerCase().trim();
-                        if (possibleNames.some(name => header === name.toLowerCase())) {
-                            return i;
-                        }
+                        if (possibleNames.some(name => header === name.toLowerCase())) return i;
                     }
                     return -1;
                 };
                 
                 const placaIndex = findColumnIndex(["Placa", "placa"]);
                 const tecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
-                
                 const oficinaIndex = 0;
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
                 
-                const jsonData = [];
+                const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
                     const row = rawData[i];
                     if (!row || row.length === 0) continue;
@@ -819,22 +789,79 @@
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
                         "Data Aviso": formattedDate,
-                        "_rawDate": rawDateValue
+                        "_rawDate": rawDateValue,
+                        "dataUpload": new Date().toISOString()
                     };
                     
-                    jsonData.push(item);
+                    novosDados.push(item);
                 }
                 
-                excelData = jsonData;
+                // ACUMULA os novos dados com os existentes
+                const placasExistentes = new Set(excelData.map(item => item.Placa));
+                let duplicados = 0;
+                let adicionados = 0;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Mapeamento de técnicos para responsáveis aplicado`;
+                for (const novo of novosDados) {
+                    if (!placasExistentes.has(novo.Placa)) {
+                        excelData.push(novo);
+                        adicionados++;
+                    } else {
+                        duplicados++;
+                    }
+                }
+                
+                // Registra no histórico de uploads
+                const uploadRecord = {
+                    nome: file.name,
+                    data: new Date().toISOString(),
+                    dataFormatada: formatTimestamp(new Date().toISOString()),
+                    totalRegistros: novosDados.length,
+                    registrosAdicionados: adicionados,
+                    registrosDuplicados: duplicados
+                };
+                uploadHistory.unshift(uploadRecord);
+                
+                saveToStorage();
+                renderUploadHistory();
+                
+                document.getElementById("fileName").innerHTML = `Arquivo carregado: ${file.name}<br>
+                <span class="text-sm">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados</span>`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
+                
+                showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
             };
             reader.readAsArrayBuffer(file);
         }
-        
-        // Open ticket modal
-        window.openTicketModal = function(index) {
+
+        function renderUploadHistory() {
+            const container = document.getElementById("uploadHistoryList");
+            if (!uploadHistory.length) {
+                container.innerHTML = `<div class="text-center text-gray-500 py-4"><i class="fas fa-inbox text-2xl mb-2 opacity-50 block"></i>Nenhum upload realizado ainda</div>`;
+                return;
+            }
+            
+            let html = `<div class="space-y-2">`;
+            uploadHistory.forEach((upload, idx) => {
+                html += `
+                    <div class="history-item bg-gray-50 rounded-lg p-3">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <p class="font-medium text-sm">📄 ${upload.nome}</p>
+                                <p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p>
+                                <div class="flex gap-3 mt-2 text-xs">
+                                    <span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>
+                                    ${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function openTicketModal(index) {
             currentEditIndex = index;
             const row = excelData[index];
             const tickets = ticketStorage[index] || [];
@@ -849,12 +876,7 @@
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 ticketsHtml += `<div class="mb-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
                 reasonHistory[index].forEach(entry => {
-                    ticketsHtml += `
-                        <div class="bg-blue-50 rounded-lg p-2 mb-2 text-xs">
-                            <span class="font-medium">${entry.reason}</span>
-                            <span class="text-gray-500 ml-2">${entry.formattedTime}</span>
-                        </div>
-                    `;
+                    ticketsHtml += `<div class="bg-blue-50 rounded-lg p-2 mb-2 text-xs"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-2">${entry.formattedTime}</span></div>`;
                 });
                 ticketsHtml += `</div>`;
             }
@@ -869,14 +891,9 @@
                                     <p class="font-medium">#${ticket.numero || i+1}</p>
                                     <p class="text-sm text-gray-600">${ticket.descricao || "Sem descrição"}</p>
                                     <p class="text-xs text-gray-400 mt-1">Status: <span class="font-medium">${ticket.status || "aberto"}</span></p>
-                                    <p class="ticket-timestamp">
-                                        <i class="far fa-clock mr-1"></i>
-                                        Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}
-                                    </p>
+                                    <p class="ticket-timestamp"><i class="far fa-clock mr-1"></i>Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
                                 </div>
-                                <button class="text-red-500 hover:text-red-700 text-sm ml-2" onclick="removeTicket(${i})">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                <button class="text-red-500 hover:text-red-700 text-sm ml-2" onclick="removeTicket(${i})"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>
                     `;
@@ -893,26 +910,22 @@
                             <option value="aberto">Aberto</option>
                             <option value="andamento">Em Andamento</option>
                         </select>
-                        <button onclick="addTicket()" class="btn-primary">
-                            <i class="fas fa-plus"></i> Adicionar
-                        </button>
+                        <button onclick="addTicket()" class="btn-primary"><i class="fas fa-plus"></i> Adicionar</button>
                     </div>
                 </div>
             `;
             
             modalBody.innerHTML = ticketsHtml;
             modal.classList.add("active");
-        };
-        
-        window.addTicket = function() {
+        }
+
+        function addTicket() {
             const desc = document.getElementById("ticketDesc").value;
             const status = document.getElementById("ticketStatus").value;
-            
             if (!desc.trim()) {
                 alert("Por favor, descreva o ticket");
                 return;
             }
-            
             const timestamp = new Date().toISOString();
             const tickets = ticketStorage[currentEditIndex] || [];
             tickets.push({
@@ -922,51 +935,35 @@
                 data: timestamp,
                 formattedTime: formatTimestamp(timestamp)
             });
-            
             ticketStorage[currentEditIndex] = tickets;
             saveToStorage();
             openTicketModal(currentEditIndex);
             renderTickets();
-            
             showNotification(`Ticket #${tickets.length} adicionado em ${formatTimestamp(timestamp)}`, 'success');
-        };
-        
-        window.removeTicket = function(ticketIndex) {
+        }
+
+        function removeTicket(ticketIndex) {
             const tickets = ticketStorage[currentEditIndex];
             tickets.splice(ticketIndex, 1);
-            if (tickets.length === 0) {
-                delete ticketStorage[currentEditIndex];
-            } else {
-                ticketStorage[currentEditIndex] = tickets;
-            }
+            if (tickets.length === 0) delete ticketStorage[currentEditIndex];
+            else ticketStorage[currentEditIndex] = tickets;
             saveToStorage();
             openTicketModal(currentEditIndex);
             renderTickets();
-        };
-        
-        // Conclude repair
-        window.concludeRepair = function(index) {
+        }
+
+        function concludeRepair(index) {
             const row = { ...excelData[index] };
             const conclusionTimestamp = new Date().toISOString();
             row.dataConclusao = conclusionTimestamp;
             row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
-            
-            if (vehicleNotDeliveredReasons[index]) {
-                row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
-            } else {
-                row["Veículo não Entregue"] = "";
-            }
-            
-            if (reasonHistory[index] && reasonHistory[index].length > 0) {
-                row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
-            }
-            
+            if (vehicleNotDeliveredReasons[index]) row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
+            else row["Veículo não Entregue"] = "";
+            if (reasonHistory[index] && reasonHistory[index].length > 0) row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
             if (ticketStorage[index] && ticketStorage[index].length > 0) {
                 row["Tickets"] = JSON.stringify(ticketStorage[index]);
                 row["Quantidade de Tickets"] = ticketStorage[index].length;
-            } else {
-                row["Quantidade de Tickets"] = 0;
-            }
+            } else row["Quantidade de Tickets"] = 0;
             
             const daysDiff = calculateDaysDifference(row["Data Aviso"]);
             if (daysDiff !== null) {
@@ -975,8 +972,6 @@
             }
             
             concludedData.push(row);
-            saveToStorage();
-            
             excelData.splice(index, 1);
             delete ticketStorage[index];
             delete vehicleNotDeliveredReasons[index];
@@ -1007,11 +1002,10 @@
             renderTickets();
             renderConcluded();
             updateBadges();
-            
             showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
-        };
-        
-        window.deleteConcluded = function(index) {
+        }
+
+        function deleteConcluded(index) {
             if (confirm("Remover este reparo do histórico permanentemente?")) {
                 concludedData.splice(index, 1);
                 saveToStorage();
@@ -1019,9 +1013,25 @@
                 updateBadges();
                 showNotification("Reparo removido do histórico!", 'success');
             }
-        };
-        
-        // Render tickets tab with filter by responsável
+        }
+
+        function clearAllData() {
+            if (confirm("⚠️ ATENÇÃO! Isso irá remover TODOS os dados (acompanhamento e concluídos). Esta ação não pode ser desfeita. Confirmar?")) {
+                excelData = [];
+                concludedData = [];
+                ticketStorage = {};
+                vehicleNotDeliveredReasons = {};
+                reasonHistory = {};
+                uploadHistory = [];
+                saveToStorage();
+                renderTickets();
+                renderConcluded();
+                renderUploadHistory();
+                updateBadges();
+                showNotification("Todos os dados foram removidos!", 'success');
+            }
+        }
+
         function renderTickets() {
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
@@ -1040,35 +1050,11 @@
             totalSpan.textContent = filteredData.length;
             
             if (filteredData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                        <p>Nenhum reparo em andamento${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p>
-                        <p class="text-sm">Faça upload da base para começar</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>Nenhum reparo em andamento${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p><p class="text-sm">Faça upload da base para começar</p></div>`;
                 return;
             }
             
-            let html = `
-                <table class="min-w-full">
-                    <thead>
-                        <tr>
-                            <th>Placa</th>
-                            <th>Técnico</th>
-                            <th>Responsável</th>
-                            <th>Equipe</th>
-                            <th>Oficina</th>
-                            <th>Marca/Modelo</th>
-                            <th>Data Aviso</th>
-                            <th>Veículo não Entregue</th>
-                            <th>Status</th>
-                            <th>30 dd</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Veículo não Entregue</th><th>Status</th><th>30 dd</th><th>Ações</th></tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
@@ -1077,7 +1063,6 @@
                 const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
                 let statusClass = "status-open";
                 if (status === "Em Andamento") statusClass = "status-progress";
-                if (status === "Aguardando") statusClass = "status-progress";
                 
                 const daysDiff = calculateDaysDifference(row["Data Aviso"]);
                 const progressPercentage = getProgressPercentage(daysDiff);
@@ -1090,45 +1075,13 @@
                     optionsHtml += `<option value="${option}" ${selected}>${option}</option>`;
                 });
                 
-                html += `
-                    <tr>
-                        <td><strong>${row["Placa"] || "-"}</strong></td>
-                        <td>${row["Cons.Técnico"] || "-"}</td>
-                        <td>${row["Responsável"] || "-"}</td>
-                        <td>${row["Equipe"] || "-"}</td>
-                        <td>${row["Oficina"] || "-"}</td>
-                        <td>${row["Marca/Modelo"] || "-"}</td>
-                        <td>${row["Data Aviso"] || "-"}</td>
-                        <td>
-                            <select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">
-                                ${optionsHtml}
-                            </select>
-                           </td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
-                        <td>
-                            <div class="progress-container">
-                                <div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;">
-                                    <span class="progress-text">${displayText}</span>
-                                </div>
-                            </div>
-                           </td>
-                        <td>
-                            <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
-                                <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
-                            </button>
-                            <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
-                                <i class="fas fa-check-circle"></i> Concluir
-                            </button>
-                           </td>
-                      </tr>
-                `;
+                html += `<tr><td><strong>${row["Placa"] || "-"}</strong></td><td>${row["Cons.Técnico"] || "-"}</td><td>${row["Responsável"] || "-"}</td><td>${row["Equipe"] || "-"}</td><td>${row["Oficina"] || "-"}</td><td>${row["Marca/Modelo"] || "-"}</td><td>${row["Data Aviso"] || "-"}</td><td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td><td><span class="status-badge ${statusClass}">${status}</span></td><td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td><td><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td></tr>`;
             });
             
-            html += "</tbody> </div>";
+            html += `</tbody></table>`;
             container.innerHTML = html;
         }
 
-        // Render concluded tab with filter by responsável
         function renderConcluded() {
             const container = document.getElementById("concludedList");
             const concludedFilterInfo = document.getElementById("concludedFilterInfo");
@@ -1144,75 +1097,27 @@
             }
             
             if (filteredData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
-                        <p>Nenhum reparo concluído${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i><p>Nenhum reparo concluído${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p></div>`;
                 return;
             }
             
-            let html = `
-                <table class="min-w-full">
-                    <thead>
-                        <tr>
-                            <th>Placa</th>
-                            <th>Técnico</th>
-                            <th>Responsável</th>
-                            <th>Equipe</th>
-                            <th>Oficina</th>
-                            <th>Marca/Modelo</th>
-                            <th>Data Aviso</th>
-                            <th>Veículo não Entregue</th>
-                            <th>Data Conclusão</th>
-                            <th>Detalhes</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Veículo não Entregue</th><th>Data Conclusão</th><th>Detalhes</th><th>Ações</th></tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
                 const conclusaoDate = row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao);
                 const hasTickets = row["Quantidade de Tickets"] > 0;
                 
-                html += `
-                    <tr>
-                        <td><strong>${row["Placa"] || "-"}</strong></td>
-                        <td>${row["Cons.Técnico"] || "-"}</td>
-                        <td>${row["Responsável"] || "-"}</td>
-                        <td>${row["Equipe"] || "-"}</td>
-                        <td>${row["Oficina"] || "-"}</td>
-                        <td>${row["Marca/Modelo"] || "-"}</td>
-                        <td>${row["Data Aviso"] || "-"}</td>
-                        <td>${row["Veículo não Entregue"] || "-"}</td>
-                        <td>${conclusaoDate}</td>
-                        <td>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showConcludedDetails(${originalIndex})">
-                                <i class="fas fa-info-circle"></i> Ver Detalhes
-                            </button>
-                            ${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}
-                          </td>
-                        <td>
-                            <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
-                                <i class="fas fa-trash-alt"></i> Remover
-                            </button>
-                          </td>
-                      </tr>
-                `;
+                html += `<tr><td><strong>${row["Placa"] || "-"}</strong></td><td>${row["Cons.Técnico"] || "-"}</td><td>${row["Responsável"] || "-"}</td><td>${row["Equipe"] || "-"}</td><td>${row["Oficina"] || "-"}</td><td>${row["Marca/Modelo"] || "-"}</td><td>${row["Data Aviso"] || "-"}</td><td>${row["Veículo não Entregue"] || "-"}</td><td>${conclusaoDate}</td><td><button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Ver Detalhes</button>${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}</td><td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i> Remover</button></td></tr>`;
             });
             
-            html += "</tbody> </div>";
+            html += `</tbody></table>`;
             container.innerHTML = html;
         }
-        
-        // Handle responsável change
+
         function handleResponsavelChange() {
             const select = document.getElementById("userSelect");
             currentResponsavel = select.value || null;
-            
             if (currentResponsavel) {
                 const userData = responsaveisList.find(r => r.value === currentResponsavel);
                 currentTeam = userData ? userData.equipe : null;
@@ -1223,52 +1128,22 @@
                 currentTeam = null;
                 document.getElementById("userBadge").classList.add("hidden");
             }
-            
             renderTickets();
             renderConcluded();
             updateBadges();
         }
-        
+
         function updateBadges() {
-            const filteredTickets = currentResponsavel 
-                ? excelData.filter(row => row["Responsável"] === currentResponsavel)
-                : excelData;
-            
-            const filteredConcluded = currentResponsavel
-                ? concludedData.filter(item => item["Responsável"] === currentResponsavel)
-                : concludedData;
-            
+            const filteredTickets = currentResponsavel ? excelData.filter(row => row["Responsável"] === currentResponsavel) : excelData;
+            const filteredConcluded = currentResponsavel ? concludedData.filter(item => item["Responsável"] === currentResponsavel) : concludedData;
             const ticketsBadge = document.getElementById("ticketsBadge");
             const concludedBadge = document.getElementById("concludedBadge");
-            
-            if (filteredTickets.length > 0) {
-                ticketsBadge.textContent = filteredTickets.length;
-                ticketsBadge.classList.remove("hidden");
-            } else {
-                ticketsBadge.classList.add("hidden");
-            }
-            
-            if (filteredConcluded.length > 0) {
-                concludedBadge.textContent = filteredConcluded.length;
-                concludedBadge.classList.remove("hidden");
-            } else {
-                concludedBadge.classList.add("hidden");
-            }
+            if (filteredTickets.length > 0) { ticketsBadge.textContent = filteredTickets.length; ticketsBadge.classList.remove("hidden"); }
+            else { ticketsBadge.classList.add("hidden"); }
+            if (filteredConcluded.length > 0) { concludedBadge.textContent = filteredConcluded.length; concludedBadge.classList.remove("hidden"); }
+            else { concludedBadge.classList.add("hidden"); }
         }
-        
-        // Options for dropdown
-        const deliveryReasonOptions = [
-            "Peça não Chegou",
-            "Consumidor não levou o veículo",
-            "Nova avaria",
-            "Peça errada / defeito",
-            "Agendamento sendo realizado",
-            "Chamado sem Carta Resposta",
-            "Caso Crítico",
-            "Outros"
-        ];
-        
-        // Initialize
+
         function init() {
             loadFromStorage();
             
@@ -1279,47 +1154,37 @@
                 option.textContent = `${r.label} (${r.equipe})`;
                 userSelect.appendChild(option);
             });
-            
             userSelect.addEventListener("change", handleResponsavelChange);
+            
+            document.getElementById("clearAllDataBtn").addEventListener("click", clearAllData);
             
             document.querySelectorAll(".nav-tab").forEach(btn => {
                 btn.addEventListener("click", () => {
                     document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
                     btn.classList.add("active");
-                    
                     const tabId = btn.dataset.tab;
                     document.getElementById("uploadTab").style.display = tabId === "upload" ? "block" : "none";
                     document.getElementById("ticketsTab").style.display = tabId === "tickets" ? "block" : "none";
                     document.getElementById("concludedTab").style.display = tabId === "concluded" ? "block" : "none";
-                    
                     if (tabId === "tickets") renderTickets();
                     if (tabId === "concluded") renderConcluded();
+                    if (tabId === "upload") renderUploadHistory();
                 });
             });
             
             const dropZone = document.getElementById("dropZone");
             const fileInput = document.getElementById("fileInput");
-            
             dropZone.addEventListener("click", () => fileInput.click());
-            dropZone.addEventListener("dragover", (e) => {
-                e.preventDefault();
-                dropZone.classList.add("drag-active");
-            });
+            dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-active"); });
             dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-active"));
             dropZone.addEventListener("drop", (e) => {
                 e.preventDefault();
                 dropZone.classList.remove("drag-active");
                 const file = e.dataTransfer.files[0];
-                if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) {
-                    processExcelFile(file);
-                } else {
-                    alert("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
-                }
+                if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) processExcelFile(file);
+                else alert("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
             });
-            
-            fileInput.addEventListener("change", (e) => {
-                if (e.target.files[0]) processExcelFile(e.target.files[0]);
-            });
+            fileInput.addEventListener("change", (e) => { if (e.target.files[0]) processExcelFile(e.target.files[0]); });
             
             document.getElementById("processFileBtn").addEventListener("click", () => {
                 if (excelData.length > 0) {
@@ -1328,9 +1193,8 @@
                     updateBadges();
                 }
             });
-            
             document.getElementById("clearConcludedBtn").addEventListener("click", () => {
-                if (confirm("Limpar todo o histórico de reparos concluídos? Esta ação não pode ser desfeita.")) {
+                if (confirm("Limpar todo o histórico de reparos concluídos?")) {
                     concludedData = [];
                     saveToStorage();
                     renderConcluded();
@@ -1339,32 +1203,14 @@
                 }
             });
             
-            document.querySelectorAll(".closeModal").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    document.getElementById("ticketModal").classList.remove("active");
-                });
-            });
-            
-            document.querySelectorAll(".closeDetailsModal").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    document.getElementById("detailsModal").classList.remove("active");
-                });
-            });
-            
-            document.getElementById("ticketModal").addEventListener("click", (e) => {
-                if (e.target === document.getElementById("ticketModal")) {
-                    document.getElementById("ticketModal").classList.remove("active");
-                }
-            });
-            
-            document.getElementById("detailsModal").addEventListener("click", (e) => {
-                if (e.target === document.getElementById("detailsModal")) {
-                    document.getElementById("detailsModal").classList.remove("active");
-                }
-            });
+            document.querySelectorAll(".closeModal").forEach(btn => btn.addEventListener("click", () => document.getElementById("ticketModal").classList.remove("active")));
+            document.querySelectorAll(".closeDetailsModal").forEach(btn => btn.addEventListener("click", () => document.getElementById("detailsModal").classList.remove("active")));
+            document.getElementById("ticketModal").addEventListener("click", (e) => { if (e.target === document.getElementById("ticketModal")) document.getElementById("ticketModal").classList.remove("active"); });
+            document.getElementById("detailsModal").addEventListener("click", (e) => { if (e.target === document.getElementById("detailsModal")) document.getElementById("detailsModal").classList.remove("active"); });
             
             renderTickets();
             renderConcluded();
+            renderUploadHistory();
             updateBadges();
         }
         
