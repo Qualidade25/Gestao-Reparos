@@ -364,169 +364,26 @@
             localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
         }
 
-        // Update UI badges
-        function updateBadges() {
-            const filteredTickets = currentTeam 
-                ? excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam)
-                : excelData;
+        // Format date properly
+        function formatDate(dateValue) {
+            if (!dateValue || dateValue === "-") return "-";
             
-            const filteredConcluded = currentTeam
-                ? concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam)
-                : concludedData;
-            
-            const ticketsBadge = document.getElementById("ticketsBadge");
-            const concludedBadge = document.getElementById("concludedBadge");
-            
-            if (filteredTickets.length > 0) {
-                ticketsBadge.textContent = filteredTickets.length;
-                ticketsBadge.classList.remove("hidden");
-            } else {
-                ticketsBadge.classList.add("hidden");
+            // Try to parse as Excel serial number
+            if (typeof dateValue === 'number' && dateValue > 40000) {
+                const date = new Date((dateValue - 25569) * 86400 * 1000);
+                return date.toLocaleDateString('pt-BR');
             }
             
-            if (filteredConcluded.length > 0) {
-                concludedBadge.textContent = filteredConcluded.length;
-                concludedBadge.classList.remove("hidden");
-            } else {
-                concludedBadge.classList.add("hidden");
-            }
-        }
-
-        // Render tickets tab
-        function renderTickets() {
-            const container = document.getElementById("ticketsList");
-            const totalSpan = document.getElementById("ticketsTotalCount");
+            // Try to parse as string date
+            try {
+                const date = new Date(dateValue);
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleDateString('pt-BR');
+                }
+            } catch(e) {}
             
-            let filteredData = excelData;
-            if (currentTeam) {
-                filteredData = excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam);
-            }
-            
-            totalSpan.textContent = filteredData.length;
-            
-            if (filteredData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                        <p>Nenhum reparo em andamento</p>
-                        <p class="text-sm">Faça upload da base para começar</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>OS</th>
-                            <th>Placa</th>
-                            <th>Veículo</th>
-                            <th>Cons.Técnico</th>
-                            <th>Oficina</th>
-                            <th>Marca/Modelo</th>
-                            <th>Data Ativação</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            filteredData.forEach((row, idx) => {
-                const originalIndex = excelData.findIndex((r, i) => r === row);
-                const tickets = ticketStorage[originalIndex] || [];
-                const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
-                let statusClass = "status-open";
-                if (status === "Em Andamento") statusClass = "status-progress";
-                if (status === "Aguardando") statusClass = "status-progress";
-                
-                html += `
-                    <tr>
-                        <td>${row["OS"] || "-"}</td>
-                        <td><strong>${row["Placa"] || "-"}</strong></td>
-                        <td>${row["Veículo"] || "-"}</td>
-                        <td>${row["Cons.Técnico"] || "-"}</td>
-                        <td>${row["Oficina"] || "-"}</td>
-                        <td>${row["Marca/Modelo"] || "-"}</td>
-                        <td>${row["Data Ativação"] || "-"}</td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
-                        <td>
-                            <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
-                                <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
-                            </button>
-                            <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
-                                <i class="fas fa-check-circle"></i> Concluir
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += "</tbody></table>";
-            container.innerHTML = html;
-        }
-
-        // Render concluded tab
-        function renderConcluded() {
-            const container = document.getElementById("concludedList");
-            
-            let filteredData = concludedData;
-            if (currentTeam) {
-                filteredData = concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam);
-            }
-            
-            if (filteredData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
-                        <p>Nenhum reparo concluído ainda</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>OS</th>
-                            <th>Placa</th>
-                            <th>Veículo</th>
-                            <th>Cons.Técnico</th>
-                            <th>Oficina</th>
-                            <th>Marca/Modelo</th>
-                            <th>Data Ativação</th>
-                            <th>Data Conclusão</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            filteredData.forEach((row, idx) => {
-                const originalIndex = concludedData.findIndex((r, i) => r === row);
-                html += `
-                    <tr>
-                        <td>${row["OS"] || "-"}</td>
-                        <td><strong>${row["Placa"] || "-"}</strong></td>
-                        <td>${row["Veículo"] || "-"}</td>
-                        <td>${row["Cons.Técnico"] || "-"}</td>
-                        <td>${row["Oficina"] || "-"}</td>
-                        <td>${row["Marca/Modelo"] || "-"}</td>
-                        <td>${row["Data Ativação"] || "-"}</td>
-                        <td>${new Date(row.dataConclusao).toLocaleDateString()}</td>
-                        <td>
-                            <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
-                                <i class="fas fa-trash-alt"></i> Remover
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += "</tbody></table>";
-            container.innerHTML = html;
+            // Return original value if can't parse
+            return dateValue;
         }
 
         // Process Excel file with new columns extraction
@@ -559,9 +416,7 @@
                     return -1;
                 };
                 
-                const osIndex = findColumnIndex(["OS", "os"]);
                 const placaIndex = findColumnIndex(["Placa", "placa"]);
-                const veiculoIndex = findColumnIndex(["Veículo", "veículo", "veiculo"]);
                 const consTecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
                 
                 // Extract columns by position (A=0, M=12, O=14)
@@ -575,15 +430,19 @@
                     const row = rawData[i];
                     if (!row || row.length === 0) continue;
                     
+                    // Get raw date value
+                    let rawDateValue = row[dataAtivacaoIndex] || "-";
+                    let formattedDate = formatDate(rawDateValue);
+                    
                     const item = {
-                        "OS": osIndex >= 0 && row[osIndex] ? String(row[osIndex]) : "-",
-                        "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]) : "-",
-                        "Veículo": veiculoIndex >= 0 && row[veiculoIndex] ? String(row[veiculoIndex]) : "-",
+                        "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
                         "Cons.Técnico": consTecnicoIndex >= 0 && row[consTecnicoIndex] ? String(row[consTecnicoIndex]) : "-",
                         // New columns extracted by position
-                        "Oficina": row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
-                        "Marca/Modelo": row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
-                        "Data Ativação": row[dataAtivacaoIndex] ? String(row[dataAtivacaoIndex]) : "-"
+                        "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
+                        "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
+                        "Data Ativação": formattedDate,
+                        // Keep original raw date for reference if needed
+                        "_rawDate": rawDateValue
                     };
                     
                     jsonData.push(item);
@@ -591,7 +450,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas adicionadas: Oficina, Marca/Modelo, Data Ativação`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -605,8 +464,9 @@
             const modal = document.getElementById("ticketModal");
             const modalBody = document.getElementById("modalBody");
             
-            let ticketsHtml = `<p class="mb-3"><strong>Veículo:</strong> ${row["Veículo"] || "-"} (${row["Placa"] || "-"})</p>`;
-            ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}</p>`;
+            let ticketsHtml = `<p class="mb-3"><strong>Placa:</strong> ${row["Placa"] || "-"}</p>`;
+            ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}<br>
+            <strong>Data Ativação:</strong> ${row["Data Ativação"] || "-"} | <strong>Cons.Técnico:</strong> ${row["Cons.Técnico"] || "-"}</p>`;
             
             if (tickets.length > 0) {
                 ticketsHtml += `<div class="mb-4 max-h-60 overflow-y-auto"><h4 class="font-semibold mb-2">Tickets existentes:</h4>`;
@@ -716,6 +576,135 @@
                 updateBadges();
             }
         };
+        
+        // Render tickets tab (without OS and Veículo columns)
+        function renderTickets() {
+            const container = document.getElementById("ticketsList");
+            const totalSpan = document.getElementById("ticketsTotalCount");
+            
+            let filteredData = excelData;
+            if (currentTeam) {
+                filteredData = excelData.filter(row => getEquipeByTecnico(row["Cons.Técnico"] || "") === currentTeam);
+            }
+            
+            totalSpan.textContent = filteredData.length;
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                        <p>Nenhum reparo em andamento</p>
+                        <p class="text-sm">Faça upload da base para começar</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Cons.Técnico</th>
+                            <th>Oficina</th>
+                            <th>Marca/Modelo</th>
+                            <th>Data Ativação</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filteredData.forEach((row, idx) => {
+                const originalIndex = excelData.findIndex((r, i) => r === row);
+                const tickets = ticketStorage[originalIndex] || [];
+                const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
+                let statusClass = "status-open";
+                if (status === "Em Andamento") statusClass = "status-progress";
+                if (status === "Aguardando") statusClass = "status-progress";
+                
+                html += `
+                    <tr>
+                        <td><strong>${row["Placa"] || "-"}</strong></td>
+                        <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${row["Oficina"] || "-"}</td>
+                        <td>${row["Marca/Modelo"] || "-"}</td>
+                        <td>${row["Data Ativação"] || "-"}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
+                                <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
+                            </button>
+                            <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
+                                <i class="fas fa-check-circle"></i> Concluir
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
+
+        // Render concluded tab (without OS and Veículo columns)
+        function renderConcluded() {
+            const container = document.getElementById("concludedList");
+            
+            let filteredData = concludedData;
+            if (currentTeam) {
+                filteredData = concludedData.filter(item => getEquipeByTecnico(String(item["Cons.Técnico"] || "")) === currentTeam);
+            }
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
+                        <p>Nenhum reparo concluído ainda</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Cons.Técnico</th>
+                            <th>Oficina</th>
+                            <th>Marca/Modelo</th>
+                            <th>Data Ativação</th>
+                            <th>Data Conclusão</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filteredData.forEach((row, idx) => {
+                const originalIndex = concludedData.findIndex((r, i) => r === row);
+                html += `
+                    <tr>
+                        <td><strong>${row["Placa"] || "-"}</strong></td>
+                        <td>${row["Cons.Técnico"] || "-"}</td>
+                        <td>${row["Oficina"] || "-"}</td>
+                        <td>${row["Marca/Modelo"] || "-"}</td>
+                        <td>${row["Data Ativação"] || "-"}</td>
+                        <td>${new Date(row.dataConclusao).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
+                                <i class="fas fa-trash-alt"></i> Remover
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
         
         // Handle user change
         function handleUserChange() {
