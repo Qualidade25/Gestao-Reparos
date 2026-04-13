@@ -102,6 +102,27 @@
             color: #059669;
         }
 
+        .reason-select {
+            width: 100%;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reason-select:hover {
+            border-color: #667eea;
+        }
+
+        .reason-select:focus {
+            outline: none;
+            ring: 2px solid #667eea;
+            border-color: #667eea;
+        }
+
         input, select, textarea {
             transition: all 0.2s ease;
         }
@@ -331,9 +352,22 @@
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
+        let vehicleNotDeliveredReasons = {}; // Store reasons for each vehicle
         let currentUser = null;
         let currentTeam = null;
         let currentEditIndex = null;
+
+        // Options for "Veículo não Entregue" dropdown
+        const deliveryReasonOptions = [
+            "Peça não Chegou",
+            "Consumidor não levou o veículo",
+            "Nova avaria",
+            "Peça errada / defeito",
+            "Agendamento sendo realizado",
+            "Chamado sem Carta Resposta",
+            "Caso Crítico",
+            "Outros"
+        ];
 
         // Technicians data
         const responsaveis = [
@@ -356,12 +390,16 @@
                 
                 const storedTickets = localStorage.getItem("vehicleTickets");
                 if (storedTickets) ticketStorage = JSON.parse(storedTickets);
+                
+                const storedReasons = localStorage.getItem("vehicleNotDeliveredReasons");
+                if (storedReasons) vehicleNotDeliveredReasons = JSON.parse(storedReasons);
             } catch(e) { console.error(e); }
         }
 
         function saveToStorage() {
             localStorage.setItem("concludedRepairs", JSON.stringify(concludedData));
             localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
+            localStorage.setItem("vehicleNotDeliveredReasons", JSON.stringify(vehicleNotDeliveredReasons));
         }
 
         // Format date properly - supports Excel serial numbers and string dates
@@ -399,6 +437,12 @@
             return String(dateValue);
         }
 
+        // Update reason for vehicle
+        window.updateDeliveryReason = function(index, reason) {
+            vehicleNotDeliveredReasons[index] = reason;
+            saveToStorage();
+        };
+
         // Process Excel file with correct column mapping
         function processExcelFile(file) {
             const reader = new FileReader();
@@ -435,7 +479,7 @@
                 // Column positions (0-based index)
                 // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14
                 const oficinaIndex = 0;      // Coluna A
-                const dataAtivacaoIndex = 13; // Coluna N (corrigido)
+                const dataAtivacaoIndex = 13; // Coluna N
                 const marcaModeloIndex = 14;  // Coluna O
                 
                 // Process data rows (skip header)
@@ -464,7 +508,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação (Coluna N)`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação, Veículo não Entregue`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -562,19 +606,31 @@
         // Conclude repair
         window.concludeRepair = function(index) {
             const row = { ...excelData[index], dataConclusao: new Date().toISOString() };
+            // Preserve the reason when moving to concluded
+            if (vehicleNotDeliveredReasons[index]) {
+                row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
+            }
             concludedData.push(row);
             saveToStorage();
             
             excelData.splice(index, 1);
             delete ticketStorage[index];
+            delete vehicleNotDeliveredReasons[index];
             
-            // Re-index ticketStorage
+            // Re-index storages
             const newTicketStorage = {};
             Object.keys(ticketStorage).forEach(key => {
                 const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
                 newTicketStorage[newKey] = ticketStorage[key];
             });
             ticketStorage = newTicketStorage;
+            
+            const newReasonsStorage = {};
+            Object.keys(vehicleNotDeliveredReasons).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newReasonsStorage[newKey] = vehicleNotDeliveredReasons[key];
+            });
+            vehicleNotDeliveredReasons = newReasonsStorage;
             
             saveToStorage();
             renderTickets();
@@ -591,7 +647,7 @@
             }
         };
         
-        // Render tickets tab
+        // Render tickets tab with new column
         function renderTickets() {
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
@@ -615,7 +671,7 @@
             }
             
             let html = `
-                <table>
+                <table class="min-w-full">
                     <thead>
                         <tr>
                             <th>Placa</th>
@@ -623,6 +679,7 @@
                             <th>Oficina</th>
                             <th>Marca/Modelo</th>
                             <th>Data Ativação</th>
+                            <th>Veículo não Entregue</th>
                             <th>Status</th>
                             <th>Ações</th>
                         </tr>
@@ -633,10 +690,18 @@
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
                 const tickets = ticketStorage[originalIndex] || [];
+                const currentReason = vehicleNotDeliveredReasons[originalIndex] || "";
                 const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
                 let statusClass = "status-open";
                 if (status === "Em Andamento") statusClass = "status-progress";
                 if (status === "Aguardando") statusClass = "status-progress";
+                
+                // Create dropdown options
+                let optionsHtml = `<option value="">Selecione...</option>`;
+                deliveryReasonOptions.forEach(option => {
+                    const selected = currentReason === option ? 'selected' : '';
+                    optionsHtml += `<option value="${option}" ${selected}>${option}</option>`;
+                });
                 
                 html += `
                     <tr>
@@ -645,6 +710,11 @@
                         <td>${row["Oficina"] || "-"}</td>
                         <td>${row["Marca/Modelo"] || "-"}</td>
                         <td>${row["Data Ativação"] || "-"}</td>
+                        <td>
+                            <select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">
+                                ${optionsHtml}
+                            </select>
+                        </td>
                         <td><span class="status-badge ${statusClass}">${status}</span></td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
@@ -662,7 +732,7 @@
             container.innerHTML = html;
         }
 
-        // Render concluded tab
+        // Render concluded tab with new column
         function renderConcluded() {
             const container = document.getElementById("concludedList");
             
@@ -682,7 +752,7 @@
             }
             
             let html = `
-                <table>
+                <table class="min-w-full">
                     <thead>
                         <tr>
                             <th>Placa</th>
@@ -690,6 +760,7 @@
                             <th>Oficina</th>
                             <th>Marca/Modelo</th>
                             <th>Data Ativação</th>
+                            <th>Veículo não Entregue</th>
                             <th>Data Conclusão</th>
                             <th>Ações</th>
                         </tr>
@@ -706,6 +777,7 @@
                         <td>${row["Oficina"] || "-"}</td>
                         <td>${row["Marca/Modelo"] || "-"}</td>
                         <td>${row["Data Ativação"] || "-"}</td>
+                        <td>${row["Veículo não Entregue"] || "-"}</td>
                         <td>${new Date(row.dataConclusao).toLocaleDateString()}</td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})">
