@@ -123,6 +123,46 @@
             border-color: #667eea;
         }
 
+        /* Progress Bar Styles */
+        .progress-container {
+            width: 100%;
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+            min-width: 120px;
+        }
+
+        .progress-bar {
+            height: 1.5rem;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+        }
+
+        .progress-bar-green {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .progress-bar-yellow {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .progress-bar-red {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .progress-text {
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
         input, select, textarea {
             transition: all 0.2s ease;
         }
@@ -409,7 +449,7 @@
             // If it's a number (Excel serial date)
             if (typeof dateValue === 'number' && dateValue > 40000) {
                 const date = new Date((dateValue - 25569) * 86400 * 1000);
-                return date.toLocaleDateString('pt-BR');
+                return date;
             }
             
             // If it's a string, try to parse
@@ -417,7 +457,7 @@
                 // Try to parse as date string
                 const date = new Date(dateValue);
                 if (!isNaN(date.getTime())) {
-                    return date.toLocaleDateString('pt-BR');
+                    return date;
                 }
                 
                 // Check if it's already in DD/MM/YYYY format
@@ -428,13 +468,55 @@
                     const year = parseInt(parts[2]);
                     const testDate = new Date(year, month, day);
                     if (testDate.getDate() === day && testDate.getMonth() === month && testDate.getFullYear() === year) {
-                        return dateValue;
+                        return testDate;
                     }
                 }
             }
             
-            // Return original if can't parse
-            return String(dateValue);
+            // Return null if can't parse
+            return null;
+        }
+
+        // Calculate days difference between activation date and today
+        function calculateDaysDifference(activationDate) {
+            if (!activationDate || activationDate === "-") return null;
+            
+            const dateObj = formatDate(activationDate);
+            if (!dateObj || isNaN(dateObj.getTime())) return null;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            dateObj.setHours(0, 0, 0, 0);
+            
+            const diffTime = today - dateObj;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            return diffDays;
+        }
+
+        // Get progress bar color based on days
+        function getProgressBarColor(days) {
+            if (days === null) return "progress-bar-red";
+            if (days <= 10) return "progress-bar-green";
+            if (days <= 20) return "progress-bar-yellow";
+            return "progress-bar-red";
+        }
+
+        // Get progress percentage (capped at 100%)
+        function getProgressPercentage(days) {
+            if (days === null) return 100;
+            const percentage = (days / 30) * 100;
+            return Math.min(percentage, 100);
+        }
+
+        // Format date for display
+        function formatDateDisplay(dateValue) {
+            if (!dateValue || dateValue === "-" || dateValue === "") return "-";
+            
+            const dateObj = formatDate(dateValue);
+            if (!dateObj || isNaN(dateObj.getTime())) return String(dateValue);
+            
+            return dateObj.toLocaleDateString('pt-BR');
         }
 
         // Update reason for vehicle
@@ -443,7 +525,7 @@
             saveToStorage();
         };
 
-        // Process Excel file with correct column mapping
+        // Process Excel file with correct column mapping - Data Ativação na Coluna U (índice 20)
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -477,10 +559,10 @@
                 const consTecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
                 
                 // Column positions (0-based index)
-                // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14
-                const oficinaIndex = 0;      // Coluna A
-                const dataAtivacaoIndex = 20; // Coluna U
-                const marcaModeloIndex = 14;  // Coluna O
+                // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15, Q=16, R=17, S=18, T=19, U=20
+                const oficinaIndex = 0;       // Coluna A
+                const dataAtivacaoIndex = 20;  // Coluna U
+                const marcaModeloIndex = 14;   // Coluna O
                 
                 // Process data rows (skip header)
                 const jsonData = [];
@@ -488,9 +570,9 @@
                     const row = rawData[i];
                     if (!row || row.length === 0) continue;
                     
-                    // Get raw date value from column N (index 13)
+                    // Get raw date value from column U (index 20)
                     let rawDateValue = (dataAtivacaoIndex < row.length && row[dataAtivacaoIndex]) ? row[dataAtivacaoIndex] : "-";
-                    let formattedDate = formatDate(rawDateValue);
+                    let formattedDate = formatDateDisplay(rawDateValue);
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -499,7 +581,6 @@
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
                         "Data Ativação": formattedDate,
-                        // Keep original raw date for reference
                         "_rawDate": rawDateValue
                     };
                     
@@ -508,7 +589,7 @@
                 
                 excelData = jsonData;
                 
-                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação, Veículo não Entregue`;
+                document.getElementById("fileName").textContent = `Arquivo carregado: ${file.name} (${excelData.length} registros) | Colunas: Placa, Cons.Técnico, Oficina, Marca/Modelo, Data Ativação (Coluna U), Veículo não Entregue, 30 dd`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
             };
             reader.readAsArrayBuffer(file);
@@ -647,7 +728,7 @@
             }
         };
         
-        // Render tickets tab with new column
+        // Render tickets tab with progress bar column
         function renderTickets() {
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
@@ -681,6 +762,7 @@
                             <th>Data Ativação</th>
                             <th>Veículo não Entregue</th>
                             <th>Status</th>
+                            <th>30 dd</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -695,6 +777,12 @@
                 let statusClass = "status-open";
                 if (status === "Em Andamento") statusClass = "status-progress";
                 if (status === "Aguardando") statusClass = "status-progress";
+                
+                // Calculate progress for 30 days
+                const daysDiff = calculateDaysDifference(row["Data Ativação"]);
+                const progressPercentage = getProgressPercentage(daysDiff);
+                const progressColor = getProgressBarColor(daysDiff);
+                const displayText = daysDiff !== null ? `${daysDiff} / 30 dias` : "Data inválida";
                 
                 // Create dropdown options
                 let optionsHtml = `<option value="">Selecione...</option>`;
@@ -714,8 +802,15 @@
                             <select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">
                                 ${optionsHtml}
                             </select>
-                        </td>
+                         </td>
                         <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;">
+                                    <span class="progress-text">${displayText}</span>
+                                </div>
+                            </div>
+                         </td>
                         <td>
                             <button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})">
                                 <i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})
@@ -723,8 +818,8 @@
                             <button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})">
                                 <i class="fas fa-check-circle"></i> Concluir
                             </button>
-                        </td>
-                    </tr>
+                         </td>
+                     </tr>
                 `;
             });
             
@@ -732,7 +827,7 @@
             container.innerHTML = html;
         }
 
-        // Render concluded tab with new column
+        // Render concluded tab
         function renderConcluded() {
             const container = document.getElementById("concludedList");
             
