@@ -154,7 +154,7 @@
             color: #059669;
         }
 
-        .reason-select, .critical-select, .ultimo-status-select {
+        .reason-select, .critical-select {
             width: 100%;
             padding: 0.375rem 0.625rem;
             border-radius: 0.625rem;
@@ -166,7 +166,7 @@
             font-weight: 500;
         }
 
-        .reason-select:hover, .critical-select:hover, .ultimo-status-select:hover {
+        .reason-select:hover, .critical-select:hover {
             border-color: #818cf8;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
@@ -458,33 +458,19 @@
             align-items: center;
         }
 
-        .status-filter-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .status-filter-select {
-            padding: 0.5rem 1rem;
-            border-radius: 1rem;
-            border: 1px solid #e2e8f0;
-            background: white;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 220px;
-            font-weight: 500;
-        }
-
-        .status-filter-select:hover {
-            border-color: #818cf8;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        .status-badge-aprovacao {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #e0e7ff;
+            color: #4f46e5;
         }
     </style>
 </head>
 <body>
     <div id="app" class="min-h-screen">
-        <!-- Header -->
         <header class="sticky top-0 z-40 border-b bg-white/95 backdrop-blur-xl shadow-lg">
             <div class="max-w-[98%] mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4">
@@ -514,27 +500,13 @@
                                 <option value="3">3</option>
                             </select>
                         </div>
-                        <div class="relative">
-                            <i class="fas fa-tag absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-                            <select id="statusFilter" class="status-filter-select pl-9">
-                                <option value="">Todos os Status</option>
-                                <option value="Aprovado">Aprovado</option>
-                                <option value="Documentos Fiscais">Documentos Fiscais</option>
-                                <option value="Veículo Entregue ao Consumidor">Veículo Entregue ao Consumidor</option>
-                                <option value="Pago">Pago</option>
-                                <option value="Documentos Fiscais em Análise">Documentos Fiscais em Análise</option>
-                                <option value="Liberado para pagamento">Liberado para pagamento</option>
-                            </select>
-                        </div>
                     </div>
                     <div id="userBadge" class="hidden px-4 py-2 rounded-full font-semibold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"></div>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="max-w-[98%] mx-auto px-6 py-8">
-            <!-- Tab Navigation -->
             <div class="flex gap-2 mb-8 bg-white/50 backdrop-blur-sm rounded-2xl p-1.5 w-fit shadow-sm">
                 <button class="nav-tab active" data-tab="upload">
                     <i class="fas fa-cloud-upload-alt mr-2"></i>
@@ -556,7 +528,6 @@
                 </button>
             </div>
 
-            <!-- Tab Content: Upload -->
             <div id="uploadTab" class="tab-content fade-in">
                 <div class="glass-card p-10">
                     <div class="text-center mb-8">
@@ -606,7 +577,6 @@
                 </div>
             </div>
 
-            <!-- Tab Content: Tickets -->
             <div id="ticketsTab" class="tab-content fade-in" style="display: none;">
                 <div class="glass-card p-6">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -638,7 +608,6 @@
                 </div>
             </div>
 
-            <!-- Tab Content: Concluded -->
             <div id="concludedTab" class="tab-content fade-in" style="display: none;">
                 <div class="glass-card p-6">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -663,7 +632,6 @@
                 </div>
             </div>
 
-            <!-- Tab Content: Performance -->
             <div id="performanceTab" class="tab-content fade-in" style="display: none;">
                 <div class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -743,9 +711,7 @@
                             </h3>
                             <div class="overflow-x-auto max-h-80">
                                 <table class="min-w-full" id="avgTable">
-                                    <thead>
-                                        <tr><th class="text-left py-2">Responsável</th><th class="text-center py-2">Média Diária</th><th class="text-center py-2">Total Concluídos</th></tr>
-                                    </thead>
+                                    <thead><tr><th class="text-left py-2">Responsável</th><th class="text-center py-2">Média Diária</th><th class="text-center py-2">Total Concluídos</th></tr></thead>
                                     <tbody id="avgTableBody"><tr><td colspan="3" class="text-center py-8 text-gray-500">Carregando...</td></tr></tbody>
                                 </table>
                             </div>
@@ -775,7 +741,6 @@
         </footer>
     </div>
 
-    <!-- Modais -->
     <div id="ticketModal" class="modal">
         <div class="modal-content p-6">
             <div class="flex justify-between items-center mb-5">
@@ -807,34 +772,22 @@
     </div>
 
     <script>
-        // Data stores
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
         let vehicleNotDeliveredReasons = {};
         let reasonHistory = {};
         let criticalStatus = {};
-        let ultimoStatusStorage = {};
         let statusAprovacaoStorage = {};
         let uploadHistory = [];
         let currentResponsavel = null;
         let currentComplexity = null;
-        let currentStatusAprovacao = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
         let performanceChart = null;
         let statusChart = null;
         let dailyChart = null;
-
-        const statusAprovacaoOptions = [
-            "Aprovado",
-            "Documentos Fiscais",
-            "Veículo Entregue ao Consumidor",
-            "Pago",
-            "Documentos Fiscais em Análise",
-            "Liberado para pagamento"
-        ];
 
         const tecnicoResponsavelMap = new Map([
             ["Alexandre Stassuk Munhoes", { responsavel: "Michelle", equipe: "LayOut time-2" }],
@@ -901,9 +854,7 @@
         function getResponsavelAndEquipeByTecnico(tecnico) {
             if (!tecnico || tecnico === "-") return { responsavel: null, equipe: null };
             for (let [key, value] of tecnicoResponsavelMap.entries()) {
-                if (key.toLowerCase() === tecnico.toLowerCase()) {
-                    return value;
-                }
+                if (key.toLowerCase() === tecnico.toLowerCase()) return value;
             }
             return { responsavel: null, equipe: null };
         }
@@ -912,28 +863,18 @@
             try {
                 const storedData = localStorage.getItem("excelData");
                 if (storedData) excelData = JSON.parse(storedData);
-                
                 const storedConcluded = localStorage.getItem("concludedRepairs");
                 if (storedConcluded) concludedData = JSON.parse(storedConcluded);
-                
                 const storedTickets = localStorage.getItem("vehicleTickets");
                 if (storedTickets) ticketStorage = JSON.parse(storedTickets);
-                
                 const storedReasons = localStorage.getItem("vehicleNotDeliveredReasons");
                 if (storedReasons) vehicleNotDeliveredReasons = JSON.parse(storedReasons);
-                
                 const storedReasonHistory = localStorage.getItem("reasonHistory");
                 if (storedReasonHistory) reasonHistory = JSON.parse(storedReasonHistory);
-                
                 const storedCriticalStatus = localStorage.getItem("criticalStatus");
                 if (storedCriticalStatus) criticalStatus = JSON.parse(storedCriticalStatus);
-                
-                const storedUltimoStatus = localStorage.getItem("ultimoStatus");
-                if (storedUltimoStatus) ultimoStatusStorage = JSON.parse(storedUltimoStatus);
-                
                 const storedStatusAprovacao = localStorage.getItem("statusAprovacao");
                 if (storedStatusAprovacao) statusAprovacaoStorage = JSON.parse(storedStatusAprovacao);
-                
                 const storedUploadHistory = localStorage.getItem("uploadHistory");
                 if (storedUploadHistory) uploadHistory = JSON.parse(storedUploadHistory);
             } catch(e) { console.error(e); }
@@ -946,7 +887,6 @@
             localStorage.setItem("vehicleNotDeliveredReasons", JSON.stringify(vehicleNotDeliveredReasons));
             localStorage.setItem("reasonHistory", JSON.stringify(reasonHistory));
             localStorage.setItem("criticalStatus", JSON.stringify(criticalStatus));
-            localStorage.setItem("ultimoStatus", JSON.stringify(ultimoStatusStorage));
             localStorage.setItem("statusAprovacao", JSON.stringify(statusAprovacaoStorage));
             localStorage.setItem("uploadHistory", JSON.stringify(uploadHistory));
         }
@@ -967,7 +907,6 @@
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
             const exportData = filteredData.map(row => {
                 const idx = excelData.findIndex(r => r === row);
@@ -980,7 +919,6 @@
                     "Marca/Modelo": row["Marca/Modelo"],
                     "Data Aviso": row["Data Aviso"],
                     "Complexidade": row["Complexidade"],
-                    "Ultimo Status": ultimoStatusStorage[idx] || "-",
                     "Status Aprovação": statusAprovacaoStorage[idx] || "-",
                     "Motivo Não Entrega": vehicleNotDeliveredReasons[idx] || "",
                     "Crítico": criticalStatus[idx] || "Não"
@@ -1003,7 +941,6 @@
                 "Marca/Modelo": row["Marca/Modelo"],
                 "Data Aviso": row["Data Aviso"],
                 "Complexidade": row["Complexidade"],
-                "Ultimo Status": row["Ultimo Status"] || "-",
                 "Status Aprovação": row["Status Aprovação"] || "-",
                 "Motivo Não Entrega": row["Veículo não Entregue"] || "",
                 "Crítico": row["Crítico"] || "Não",
@@ -1043,13 +980,20 @@
 
         function formatDate(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return null;
+            
+            // Se for número serial do Excel
             if (typeof dateValue === 'number' && dateValue > 40000) {
                 const date = new Date((dateValue - 25569) * 86400 * 1000);
                 return date;
             }
+            
+            // Se for string
             if (typeof dateValue === 'string') {
+                // Tentar parse direto
                 let date = new Date(dateValue);
                 if (!isNaN(date.getTime())) return date;
+                
+                // Tentar formato DD/MM/AAAA
                 const parts = dateValue.split('/');
                 if (parts.length === 3) {
                     const day = parseInt(parts[0]);
@@ -1060,6 +1004,8 @@
                         return testDate;
                     }
                 }
+                
+                // Tentar formato AAAA-MM-DD
                 const parts2 = dateValue.split('-');
                 if (parts2.length === 3) {
                     const year = parseInt(parts2[0]);
@@ -1126,18 +1072,6 @@
             showNotification(`Status Crítico alterado para: ${value}`, 'success');
         }
 
-        function updateUltimoStatus(index, value) {
-            ultimoStatusStorage[index] = value;
-            saveToStorage();
-            showNotification(`Ultimo Status alterado para: ${value}`, 'success');
-        }
-
-        function updateStatusAprovacao(index, value) {
-            statusAprovacaoStorage[index] = value;
-            saveToStorage();
-            showNotification(`Status de Aprovação alterado para: ${value}`, 'success');
-        }
-
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed bottom-5 right-5 z-50 p-4 rounded-xl shadow-2xl ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
@@ -1160,7 +1094,6 @@
             detailsHtml += `<div><span class="font-semibold">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Complex:</span> ${row["Complexidade"] || "-"}</div>`;
-            detailsHtml += `<div><span class="font-semibold">Ultimo Status:</span> ${row["Ultimo Status"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Status Aprovação:</span> ${row["Status Aprovação"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Crítico:</span> ${row["Crítico"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Data Conclusão:</span> ${row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao)}</div>`;
@@ -1213,7 +1146,7 @@
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
                 const complexidadeIndex = 33;
-                const ultimoStatusIndex = 21;
+                const statusAprovacaoIndex = 22;
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1226,9 +1159,10 @@
                     const tecnicoNome = tecnicoIndex >= 0 && row[tecnicoIndex] ? String(row[tecnicoIndex]) : "-";
                     const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
                     let complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]).trim() : "-";
-                    let ultimoStatus = (ultimoStatusIndex < row.length && row[ultimoStatusIndex]) ? String(row[ultimoStatusIndex]) : "-";
+                    let statusAprovacao = (statusAprovacaoIndex < row.length && row[statusAprovacaoIndex]) ? String(row[statusAprovacaoIndex]) : "-";
                     
                     if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") complexidade = "-";
+                    if (statusAprovacao === "-" || statusAprovacao === "") statusAprovacao = "-";
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -1239,7 +1173,7 @@
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
                         "Data Aviso": formattedDate,
                         "Complexidade": complexidade,
-                        "Ultimo Status": ultimoStatus,
+                        "Status Aprovação": statusAprovacao,
                         "_rawDate": rawDateValue,
                         "dataUpload": new Date().toISOString()
                     };
@@ -1254,7 +1188,7 @@
                     if (!placasExistentes.has(novo.Placa)) {
                         const novoIndex = excelData.length;
                         excelData.push(novo);
-                        if (novo.UltimoStatus !== "-") ultimoStatusStorage[novoIndex] = novo.UltimoStatus;
+                        if (novo["Status Aprovação"] !== "-") statusAprovacaoStorage[novoIndex] = novo["Status Aprovação"];
                         adicionados++;
                     } else {
                         duplicados++;
@@ -1274,7 +1208,7 @@
                 saveToStorage();
                 renderUploadHistory();
                 
-                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Colunas: Data Aviso (formato BR), Complexidade, Ultimo Status (Coluna V)</span>`;
+                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Datas convertidas para formato BR (dd/mm/aaaa)<br>📌 Status Aprovação importado da Coluna W</span>`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
                 showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
             };
@@ -1306,7 +1240,7 @@
             ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Modelo: ${row["Marca/Modelo"] || "-"}<br>`;
             ticketsHtml += `📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>`;
             ticketsHtml += `👤 Responsável: ${row["Responsável"] || "-"} | 📊 Complex: ${row["Complexidade"] || "-"}<br>`;
-            ticketsHtml += `📌 Ultimo Status: ${ultimoStatusStorage[index] || row["Ultimo Status"] || "-"}</p></div>`;
+            ticketsHtml += `✅ Status Aprovação: ${statusAprovacaoStorage[index] || row["Status Aprovação"] || "-"}</p></div>`;
             
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
@@ -1348,8 +1282,7 @@
             const conclusionTimestamp = new Date().toISOString();
             row.dataConclusao = conclusionTimestamp;
             row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
-            row["Ultimo Status"] = ultimoStatusStorage[index] || row["Ultimo Status"] || "-";
-            row["Status Aprovação"] = statusAprovacaoStorage[index] || "-";
+            row["Status Aprovação"] = statusAprovacaoStorage[index] || row["Status Aprovação"] || "-";
             if (vehicleNotDeliveredReasons[index]) row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
             else row["Veículo não Entregue"] = "";
             if (criticalStatus[index]) row["Crítico"] = criticalStatus[index];
@@ -1366,11 +1299,10 @@
             delete vehicleNotDeliveredReasons[index];
             delete reasonHistory[index];
             delete criticalStatus[index];
-            delete ultimoStatusStorage[index];
             delete statusAprovacaoStorage[index];
             
             const newStorages = {};
-            for (const storage of [ticketStorage, vehicleNotDeliveredReasons, reasonHistory, criticalStatus, ultimoStatusStorage, statusAprovacaoStorage]) {
+            for (const storage of [ticketStorage, vehicleNotDeliveredReasons, reasonHistory, criticalStatus, statusAprovacaoStorage]) {
                 const newStorage = {};
                 Object.keys(storage).forEach(key => {
                     const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
@@ -1401,7 +1333,6 @@
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
             totalSpan.textContent = filteredData.length;
             
@@ -1410,15 +1341,14 @@
                 return;
             }
             
-            let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Ultimo Status</th><th>Status Aprovação</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Status Aprovação</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th></tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
                 const tickets = ticketStorage[originalIndex] || [];
                 const currentReason = vehicleNotDeliveredReasons[originalIndex] || "";
                 const currentCritical = criticalStatus[originalIndex] || "Não";
-                const currentUltimoStatus = ultimoStatusStorage[originalIndex] || row["Ultimo Status"] || "-";
-                const currentStatusAprov = statusAprovacaoStorage[originalIndex] || "-";
+                const currentStatusAprov = statusAprovacaoStorage[originalIndex] || row["Status Aprovação"] || "-";
                 const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
                 let statusClass = "status-open";
                 if (status === "Em Andamento") statusClass = "status-progress";
@@ -1435,18 +1365,14 @@
                 let criticalOptionsHtml = `<option value="">Selecione...</option>`;
                 criticalOptions.forEach(option => { const selected = currentCritical === option ? 'selected' : ''; criticalOptionsHtml += `<option value="${option}" ${selected}>${option}</option>`; });
                 
-                let statusAprovHtml = `<option value="">Selecione...</option>`;
-                statusAprovacaoOptions.forEach(option => { const selected = currentStatusAprov === option ? 'selected' : ''; statusAprovHtml += `<option value="${option}" ${selected}>${option}</option>`; });
-                
                 html += `<tr><td class="font-semibold">${row["Placa"]}</td><td>${row["Cons.Técnico"]}</td><td>${row["Responsável"]}</td><td>${row["Equipe"]}</td><td>${row["Oficina"]}</td><td>${row["Marca/Modelo"]}</td><td>${row["Data Aviso"]}</td>`;
                 html += `<td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>`;
-                html += `<td><select class="ultimo-status-select" onchange="updateUltimoStatus(${originalIndex}, this.value)"><option value="">Selecione...</option><option value="${currentUltimoStatus}" selected>${currentUltimoStatus}</option></select></td>`;
-                html += `<td><select class="ultimo-status-select" onchange="updateStatusAprovacao(${originalIndex}, this.value)">${statusAprovHtml}</select></td>`;
+                html += `<td><span class="status-badge-aprovacao">${currentStatusAprov}</span></td>`;
                 html += `<td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td>`;
                 html += `<td><span class="status-badge ${statusClass}">${status}</span></td>`;
                 html += `<td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td>`;
                 html += `<td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>`;
-                html += `<td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td></td>`;
+                html += `<td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td></tr>`;
             });
             html += `</tbody></table></div>`;
             container.innerHTML = html;
@@ -1463,7 +1389,7 @@
                 return;
             }
             
-            let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Ultimo Status</th><th>Status Aprovação</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th></tr></thead><tbody>`;
+            let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Status Aprovação</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th></tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
@@ -1473,14 +1399,13 @@
                 
                 html += `<tr><td class="font-semibold">${row["Placa"]}</td><td>${row["Cons.Técnico"]}</td><td>${row["Responsável"]}</td><td>${row["Oficina"]}</td><td>${row["Marca/Modelo"]}</td><td>${row["Data Aviso"]}</td>`;
                 html += `<td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>`;
-                html += `<td>${row["Ultimo Status"] || "-"}</td>`;
-                html += `<td>${row["Status Aprovação"] || "-"}</td>`;
+                html += `<td><span class="status-badge-aprovacao">${row["Status Aprovação"] || "-"}</span></td>`;
                 html += `<td>${row["Veículo não Entregue"] || "-"}</td>`;
                 html += `<td><span class="${criticalClass}">${row["Crítico"] || "Não"}</span></td>`;
                 html += `<td>${conclusaoDate}</td>`;
                 html += `<td><button class="text-purple-600 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Detalhes</button></td></tr>`;
             });
-            html += `</tbody></td></div>`;
+            html += `</tbody></table></div>`;
             container.innerHTML = html;
         }
 
@@ -1571,16 +1496,10 @@
             applyFilters();
         }
 
-        function handleStatusAprovacaoChange() {
-            currentStatusAprovacao = document.getElementById("statusFilter").value || null;
-            applyFilters();
-        }
-
         function updateBadges() {
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
             let filteredConcluded = [...concludedData];
             if (currentResponsavel) filteredConcluded = filteredConcluded.filter(item => item["Responsável"] === currentResponsavel);
@@ -1601,7 +1520,6 @@
             responsaveisList.forEach(r => { const option = document.createElement("option"); option.value = r.value; option.textContent = `👤 ${r.label} (${r.equipe})`; userSelect.appendChild(option); });
             userSelect.addEventListener("change", handleResponsavelChange);
             document.getElementById("complexityFilter").addEventListener("change", handleComplexityChange);
-            document.getElementById("statusFilter").addEventListener("change", handleStatusAprovacaoChange);
             
             document.getElementById("exportTicketsBtn").addEventListener("click", exportTickets);
             document.getElementById("exportConcludedBtn").addEventListener("click", exportConcluded);
