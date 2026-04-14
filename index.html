@@ -6,6 +6,7 @@
     <title>Gestão de Reparos - Sistema Avançado de Acompanhamento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -19,7 +20,6 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
-        /* Scrollbar personalizada */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -112,23 +112,6 @@
             transform: translateY(-1px);
         }
 
-        .btn-warning {
-            background: #fef3c7;
-            color: #d97706;
-            padding: 0.5rem 1rem;
-            border-radius: 0.75rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: 1px solid #fde68a;
-            cursor: pointer;
-            font-size: 0.75rem;
-        }
-
-        .btn-warning:hover {
-            background: #fde68a;
-            transform: translateY(-1px);
-        }
-
         .status-badge {
             padding: 0.375rem 0.875rem;
             border-radius: 2rem;
@@ -169,12 +152,6 @@
         .reason-select:hover, .critical-select:hover {
             border-color: #818cf8;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .reason-select:focus, .critical-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
 
         .complexity-badge {
@@ -273,33 +250,6 @@
             text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
         }
 
-        .ticket-timestamp {
-            font-size: 0.65rem;
-            color: #94a3b8;
-            margin-top: 0.25rem;
-        }
-
-        .filter-info {
-            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-            border-left: 4px solid #667eea;
-            border-radius: 0.75rem;
-        }
-
-        .upload-history {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .history-item {
-            transition: all 0.3s ease;
-            border-radius: 0.75rem;
-        }
-
-        .history-item:hover {
-            background: #f8fafc;
-            transform: translateX(5px);
-        }
-
         .filter-group {
             display: flex;
             gap: 1rem;
@@ -360,7 +310,6 @@
 
         tr:hover {
             background: #f8fafc;
-            transform: scale(1.01);
         }
 
         .modal {
@@ -407,28 +356,6 @@
             animation: fadeIn 0.4s ease;
         }
 
-        .details-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-            margin-top: 0.5rem;
-        }
-
-        .details-item {
-            font-size: 0.75rem;
-            padding: 0.5rem;
-            background: #f8fafc;
-            border-radius: 0.5rem;
-        }
-
-        .details-label {
-            font-weight: 700;
-            color: #475569;
-            display: block;
-            margin-bottom: 0.25rem;
-        }
-
-        /* Estatísticas cards */
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 1rem;
@@ -446,17 +373,73 @@
             opacity: 0.9;
         }
 
-        /* Header melhorado */
-        .header-gradient {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
+        .performance-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .performance-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .calendar-day {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            background: #e0e7ff;
+            transform: scale(1.05);
+        }
+
+        .calendar-day.has-conclusion {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border: 2px solid #10b981;
+        }
+
+        .calendar-day.today {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            font-weight: bold;
+        }
+
+        .day-number {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .day-count {
+            font-size: 0.7rem;
+            color: #64748b;
         }
     </style>
 </head>
 <body>
     <div id="app" class="min-h-screen">
-        <!-- Header Melhorado -->
-        <header class="sticky top-0 z-40 border-b header-gradient shadow-lg">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 border-b bg-white/95 backdrop-blur-xl shadow-lg">
             <div class="max-w-[98%] mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg">
@@ -480,14 +463,14 @@
                             <i class="fas fa-chart-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                             <select id="complexityFilter" class="filter-select pl-9">
                                 <option value="">🎯 Todas Complexidades</option>
-                                <option value="1">🟢 Complexidade 1 (Baixa)</option>
-                                <option value="2">🟡 Complexidade 2 (Média)</option>
-                                <option value="3">🔴 Complexidade 3 (Alta)</option>
+                                <option value="1">🟢 Complexidade 1</option>
+                                <option value="2">🟡 Complexidade 2</option>
+                                <option value="3">🔴 Complexidade 3</option>
                             </select>
                         </div>
                     </div>
                     <div id="userBadge" class="hidden px-4 py-2 rounded-full font-semibold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"></div>
-                    <button id="clearAllDataBtn" class="btn-warning">
+                    <button id="clearAllDataBtn" class="btn-warning text-sm px-4 py-2 rounded-xl bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition">
                         <i class="fas fa-trash-alt mr-2"></i>Limpar Dados
                     </button>
                 </div>
@@ -496,7 +479,7 @@
 
         <!-- Main Content -->
         <main class="max-w-[98%] mx-auto px-6 py-8">
-            <!-- Tab Navigation Melhorada -->
+            <!-- Tab Navigation -->
             <div class="flex gap-2 mb-8 bg-white/50 backdrop-blur-sm rounded-2xl p-1.5 w-fit shadow-sm">
                 <button class="nav-tab active" data-tab="upload">
                     <i class="fas fa-cloud-upload-alt mr-2"></i>
@@ -512,9 +495,13 @@
                     <span>Concluídos</span>
                     <span id="concludedBadge" class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
                 </button>
+                <button class="nav-tab" data-tab="performance">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    <span>Relatório de Performance</span>
+                </button>
             </div>
 
-            <!-- Tab Content: Upload Melhorado -->
+            <!-- Tab Content: Upload -->
             <div id="uploadTab" class="tab-content fade-in">
                 <div class="glass-card p-10">
                     <div class="text-center mb-8">
@@ -548,7 +535,7 @@
                             <i class="fas fa-history text-purple-600 text-lg"></i>
                             <span>Histórico de Uploads</span>
                         </h3>
-                        <div id="uploadHistoryList" class="upload-history space-y-3">
+                        <div id="uploadHistoryList" class="upload-history space-y-3 max-h-80 overflow-y-auto">
                             <div class="text-center text-gray-500 py-8">
                                 <i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>
                                 <p>Nenhum upload realizado ainda</p>
@@ -564,7 +551,7 @@
                 </div>
             </div>
 
-            <!-- Tab Content: Tickets Melhorado -->
+            <!-- Tab Content: Tickets -->
             <div id="ticketsTab" class="tab-content fade-in" style="display: none;">
                 <div class="glass-card p-6">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -577,7 +564,7 @@
                             <div class="stats-label">Reparos em Aberto</div>
                         </div>
                     </div>
-                    <div id="filterInfo" class="mb-5 p-4 rounded-xl filter-info hidden">
+                    <div id="filterInfo" class="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border-l-4 border-purple-600 hidden">
                         <i class="fas fa-filter text-purple-600 mr-2"></i>
                         <span id="filterText" class="text-sm text-gray-700 font-medium"></span>
                     </div>
@@ -591,7 +578,7 @@
                 </div>
             </div>
 
-            <!-- Tab Content: Concluded Melhorado -->
+            <!-- Tab Content: Concluded -->
             <div id="concludedTab" class="tab-content fade-in" style="display: none;">
                 <div class="glass-card p-6">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -603,7 +590,7 @@
                             <i class="fas fa-trash-alt mr-2"></i>Limpar Concluídos
                         </button>
                     </div>
-                    <div id="concludedFilterInfo" class="mb-5 p-4 rounded-xl filter-info hidden">
+                    <div id="concludedFilterInfo" class="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border-l-4 border-purple-600 hidden">
                         <i class="fas fa-filter text-purple-600 mr-2"></i>
                         <span id="concludedFilterText" class="text-sm text-gray-700 font-medium"></span>
                     </div>
@@ -612,6 +599,114 @@
                             <i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i>
                             <p class="text-lg">Nenhum reparo concluído ainda</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Performance -->
+            <div id="performanceTab" class="tab-content fade-in" style="display: none;">
+                <div class="space-y-6">
+                    <!-- Cards de Resumo -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="performance-card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Total Reparos</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="totalReparos">0</p>
+                                </div>
+                                <i class="fas fa-chart-line text-3xl text-purple-400"></i>
+                            </div>
+                        </div>
+                        <div class="performance-card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Em Andamento</p>
+                                    <p class="text-2xl font-bold text-blue-600" id="totalAndamento">0</p>
+                                </div>
+                                <i class="fas fa-tasks text-3xl text-blue-400"></i>
+                            </div>
+                        </div>
+                        <div class="performance-card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Concluídos</p>
+                                    <p class="text-2xl font-bold text-green-600" id="totalConcluidos">0</p>
+                                </div>
+                                <i class="fas fa-check-circle text-3xl text-green-400"></i>
+                            </div>
+                        </div>
+                        <div class="performance-card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Taxa de Conclusão</p>
+                                    <p class="text-2xl font-bold text-orange-600" id="taxaConclusao">0%</p>
+                                </div>
+                                <i class="fas fa-percent text-3xl text-orange-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="performance-card">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-chart-bar text-purple-600"></i>
+                                <span>Performance por Responsável</span>
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="performance-card">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-chart-pie text-purple-600"></i>
+                                <span>Distribuição por Status</span>
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="performance-card">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-chart-line text-purple-600"></i>
+                                <span>Produtividade Diária (Últimos 30 dias)</span>
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="dailyProductivityChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="performance-card">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-tachometer-alt text-purple-600"></i>
+                                <span>Média Diária por Responsável</span>
+                            </h3>
+                            <div class="overflow-x-auto max-h-80">
+                                <table class="min-w-full" id="avgTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-left py-2">Responsável</th>
+                                            <th class="text-center py-2">Média Diária</th>
+                                            <th class="text-center py-2">Total Concluídos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="avgTableBody">
+                                        <tr><td colspan="3" class="text-center py-8 text-gray-500">Carregando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calendário de Produtividade -->
+                    <div class="performance-card">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-calendar-alt text-purple-600"></i>
+                            <span>Calendário de Conclusões</span>
+                        </h3>
+                        <div id="calendarContainer"></div>
                     </div>
                 </div>
             </div>
@@ -656,7 +751,7 @@
     </div>
 
     <script>
-        // Data stores - ACUMULATIVOS
+        // Data stores
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
@@ -669,7 +764,12 @@
         let currentTeam = null;
         let currentEditIndex = null;
 
-        // Mapeamento de Técnico para Responsável e Equipe
+        // Chart instances
+        let performanceChart = null;
+        let statusChart = null;
+        let dailyChart = null;
+
+        // Mapeamento de Técnico para Responsável
         const tecnicoResponsavelMap = new Map([
             ["Alexandre Stassuk Munhoes", { responsavel: "Michelle", equipe: "LayOut time-2" }],
             ["IGOR PILATI JUNG", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
@@ -838,6 +938,10 @@
             });
         }
 
+        function formatDateOnly(date) {
+            return date.toLocaleDateString('pt-BR');
+        }
+
         function updateDeliveryReason(index, reason) {
             const timestamp = new Date().toISOString();
             vehicleNotDeliveredReasons[index] = reason;
@@ -868,99 +972,32 @@
             const modal = document.getElementById("detailsModal");
             const modalBody = document.getElementById("detailsModalBody");
             
-            let detailsHtml = `
-                <div class="space-y-5">
-                    <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5">
-                        <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <i class="fas fa-car text-purple-600"></i>
-                            <span>Informações do Veículo</span>
-                        </h4>
-                        <div class="details-grid">
-                            <div class="details-item"><span class="details-label">Placa:</span> ${row["Placa"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Responsável:</span> ${row["Responsável"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Equipe:</span> ${row["Equipe"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Oficina:</span> ${row["Oficina"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Complexidade:</span> ${row["Complexidade"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Crítico:</span> ${row["Crítico"] || "-"}</div>
-                            <div class="details-item"><span class="details-label">Data Conclusão:</span> ${row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao)}</div>
-                        </div>
-                    </div>
-            `;
+            let detailsHtml = `<div class="space-y-5"><div class="bg-gray-50 rounded-xl p-5"><h4 class="font-bold mb-3">Informações do Veículo</h4><div class="grid grid-cols-2 gap-3">`;
+            detailsHtml += `<div><span class="font-semibold">Placa:</span> ${row["Placa"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Responsável:</span> ${row["Responsável"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Equipe:</span> ${row["Equipe"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Oficina:</span> ${row["Oficina"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Complexidade:</span> ${row["Complexidade"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Crítico:</span> ${row["Crítico"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Data Conclusão:</span> ${row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao)}</div>`;
+            detailsHtml += `</div></div>`;
             
             if (row["Veículo não Entregue"] && row["Veículo não Entregue"] !== "") {
-                detailsHtml += `
-                    <div class="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-5">
-                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
-                            <span>Motivo da Não Entrega</span>
-                        </h4>
-                        <p class="text-gray-700">${row["Veículo não Entregue"]}</p>
-                    </div>
-                `;
-            }
-            
-            if (row["Histórico de Motivos"]) {
-                const history = JSON.parse(row["Histórico de Motivos"]);
-                if (history && history.length > 0) {
-                    detailsHtml += `
-                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5">
-                            <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-history text-blue-600"></i>
-                                <span>Histórico de Motivos</span>
-                            </h4>
-                            <div class="space-y-2">
-                    `;
-                    history.forEach(entry => {
-                        detailsHtml += `<div class="text-sm p-2 bg-white rounded-lg"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-3">${entry.formattedTime}</span></div>`;
-                    });
-                    detailsHtml += `</div></div>`;
-                }
+                detailsHtml += `<div class="bg-yellow-50 rounded-xl p-5"><h4 class="font-bold mb-2">Motivo da Não Entrega</h4><p>${row["Veículo não Entregue"]}</p></div>`;
             }
             
             if (row["Tickets"]) {
                 const tickets = JSON.parse(row["Tickets"]);
                 if (tickets && tickets.length > 0) {
-                    detailsHtml += `
-                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5">
-                            <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-ticket-alt text-purple-600"></i>
-                                <span>Tickets (${tickets.length})</span>
-                            </h4>
-                            <div class="space-y-3">
-                    `;
+                    detailsHtml += `<div class="bg-purple-50 rounded-xl p-5"><h4 class="font-bold mb-2">Tickets (${tickets.length})</h4>`;
                     tickets.forEach(ticket => {
-                        detailsHtml += `
-                            <div class="bg-white rounded-lg p-3">
-                                <div class="font-semibold text-sm">#${ticket.numero} - <span class="text-purple-600">${ticket.status}</span></div>
-                                <div class="text-sm text-gray-700 mt-1">${ticket.descricao}</div>
-                                <div class="text-xs text-gray-500 mt-2">📅 Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</div>
-                            </div>
-                        `;
+                        detailsHtml += `<div class="border-b py-2"><div class="font-semibold">#${ticket.numero} - ${ticket.status}</div><div class="text-sm">${ticket.descricao}</div><div class="text-xs text-gray-500">${ticket.formattedTime || formatTimestamp(ticket.data)}</div></div>`;
                     });
-                    detailsHtml += `</div></div>`;
+                    detailsHtml += `</div>`;
                 }
-            }
-            
-            const daysDiff = calculateDaysDifference(row["Data Aviso"]);
-            if (daysDiff !== null) {
-                const progressColor = getProgressBarColor(daysDiff);
-                detailsHtml += `
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5">
-                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <i class="fas fa-chart-line text-green-600"></i>
-                            <span>Prazo de Entrega</span>
-                        </h4>
-                        <div class="mb-3"><span class="font-semibold">Dias desde o aviso:</span> ${daysDiff} dias</div>
-                        <div class="progress-container">
-                            <div class="progress-bar ${progressColor}" style="width: ${Math.min((daysDiff / 30) * 100, 100)}%;">
-                                <span class="progress-text">${daysDiff} / 30 dias</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
             }
             
             detailsHtml += `</div>`;
@@ -968,7 +1005,7 @@
             modal.classList.add("active");
         }
 
-        // Process Excel file - ACUMULA dados com Complexidade da Coluna AH
+        // Process Excel file
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -996,7 +1033,7 @@
                 const oficinaIndex = 0;
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
-                const complexidadeIndex = 33; // Coluna AH (índice 33, pois A=0, AH=33)
+                const complexidadeIndex = 33;
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1010,7 +1047,6 @@
                     const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
                     let complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]).trim() : "-";
                     
-                    // Garantir que complexidade seja apenas 1, 2 ou 3
                     if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") {
                         complexidade = "-";
                     }
@@ -1028,13 +1064,11 @@
                         "dataUpload": new Date().toISOString()
                     };
                     
-                    // Só adiciona se a placa não estiver vazia
                     if (item.Placa !== "-") {
                         novosDados.push(item);
                     }
                 }
                 
-                // ACUMULA os novos dados com os existentes (baseado na placa)
                 const placasExistentes = new Set(excelData.map(item => item.Placa));
                 let duplicados = 0;
                 let adicionados = 0;
@@ -1048,7 +1082,6 @@
                     }
                 }
                 
-                // Registra no histórico de uploads
                 const uploadRecord = {
                     nome: file.name,
                     data: new Date().toISOString(),
@@ -1067,7 +1100,7 @@
                     Arquivo carregado: ${file.name}<br>
                     <span class="text-sm block mt-2">
                         📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>
-                        📌 Coluna AH (Complexidade) importada: ${novosDados.filter(d => d.Complexidade !== "-").length} registros com complexidade definida
+                        📌 Coluna AH (Complexidade) importada
                     </span>
                 `;
                 document.getElementById("uploadInfo").classList.remove("hidden");
@@ -1085,18 +1118,14 @@
             }
             
             let html = `<div class="space-y-3">`;
-            uploadHistory.forEach((upload, idx) => {
+            uploadHistory.forEach((upload) => {
                 html += `
-                    <div class="history-item bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-semibold text-gray-800">📄 ${upload.nome}</p>
-                                <p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p>
-                                <div class="flex gap-4 mt-2 text-xs">
-                                    <span class="text-green-600 font-medium">✅ +${upload.registrosAdicionados} novos</span>
-                                    ${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600 font-medium">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}
-                                </div>
-                            </div>
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <p class="font-semibold">📄 ${upload.nome}</p>
+                        <p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p>
+                        <div class="flex gap-4 mt-2 text-xs">
+                            <span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>
+                            ${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -1113,32 +1142,31 @@
             const modalBody = document.getElementById("modalBody");
             
             let ticketsHtml = `<div class="space-y-4">`;
-            ticketsHtml += `<div class="bg-gray-50 rounded-lg p-4"><p class="font-semibold">🚗 Placa: <span class="text-purple-600">${row["Placa"] || "-"}</span></p>`;
-            ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Marca/Modelo: ${row["Marca/Modelo"] || "-"}<br>
-            📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>
-            👤 Responsável: ${row["Responsável"] || "-"} | 👥 Equipe: ${row["Equipe"] || "-"}<br>
-            📊 Complexidade: ${row["Complexidade"] || "-"}</p></div>`;
+            ticketsHtml += `<div class="bg-gray-50 rounded-lg p-4"><p class="font-semibold">🚗 Placa: ${row["Placa"] || "-"}</p>`;
+            ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Modelo: ${row["Marca/Modelo"] || "-"}<br>`;
+            ticketsHtml += `📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>`;
+            ticketsHtml += `👤 Responsável: ${row["Responsável"] || "-"} | 📊 Complexidade: ${row["Complexidade"] || "-"}</p></div>`;
             
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
-                ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-3 flex items-center gap-2"><i class="fas fa-history"></i> Histórico de Motivos:</h4>`;
+                ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
                 reasonHistory[index].forEach(entry => {
-                    ticketsHtml += `<div class="bg-white rounded-lg p-2 mb-2 text-sm"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-2">${entry.formattedTime}</span></div>`;
+                    ticketsHtml += `<div class="bg-white rounded p-2 mb-2 text-sm">${entry.reason} <span class="text-gray-500 text-xs">${entry.formattedTime}</span></div>`;
                 });
                 ticketsHtml += `</div>`;
             }
             
             if (tickets.length > 0) {
-                ticketsHtml += `<div class="max-h-60 overflow-y-auto"><h4 class="font-semibold mb-3 flex items-center gap-2"><i class="fas fa-ticket-alt"></i> Tickets existentes (${tickets.length}):</h4>`;
+                ticketsHtml += `<div><h4 class="font-semibold mb-2">Tickets (${tickets.length}):</h4>`;
                 tickets.forEach((ticket, i) => {
                     ticketsHtml += `
-                        <div class="bg-gray-50 rounded-lg p-3 mb-2 border border-gray-200">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <p class="font-semibold text-purple-600">#${ticket.numero || i+1} - ${ticket.status}</p>
-                                    <p class="text-sm text-gray-700 mt-1">${ticket.descricao || "Sem descrição"}</p>
-                                    <p class="text-xs text-gray-500 mt-2"><i class="far fa-clock mr-1"></i>Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="font-semibold">#${ticket.numero} - ${ticket.status}</p>
+                                    <p class="text-sm">${ticket.descricao}</p>
+                                    <p class="text-xs text-gray-500">${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
                                 </div>
-                                <button class="text-red-500 hover:text-red-700 text-sm ml-2" onclick="removeTicket(${i})"><i class="fas fa-trash-alt"></i></button>
+                                <button class="text-red-500" onclick="removeTicket(${i})"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>
                     `;
@@ -1148,14 +1176,14 @@
             
             ticketsHtml += `
                 <div class="mt-4">
-                    <label class="block text-sm font-semibold mb-2">➕ Novo Ticket:</label>
-                    <textarea id="ticketDesc" class="w-full border border-gray-300 rounded-lg p-3" rows="3" placeholder="Descreva o problema ou serviço..."></textarea>
+                    <label class="font-semibold mb-2 block">Novo Ticket:</label>
+                    <textarea id="ticketDesc" class="w-full border rounded-lg p-3" rows="3" placeholder="Descreva o problema..."></textarea>
                     <div class="flex gap-3 mt-3">
-                        <select id="ticketStatus" class="border border-gray-300 rounded-lg p-2 flex-1">
+                        <select id="ticketStatus" class="border rounded-lg p-2 flex-1">
                             <option value="aberto">🟢 Aberto</option>
                             <option value="andamento">🟡 Em Andamento</option>
                         </select>
-                        <button onclick="addTicket()" class="btn-primary"><i class="fas fa-plus"></i> Adicionar</button>
+                        <button onclick="addTicket()" class="btn-primary">Adicionar</button>
                     </div>
                 </div>
             </div>`;
@@ -1168,7 +1196,7 @@
             const desc = document.getElementById("ticketDesc").value;
             const status = document.getElementById("ticketStatus").value;
             if (!desc.trim()) {
-                alert("Por favor, descreva o ticket");
+                alert("Descreva o ticket");
                 return;
             }
             const timestamp = new Date().toISOString();
@@ -1184,7 +1212,7 @@
             saveToStorage();
             openTicketModal(currentEditIndex);
             renderTickets();
-            showNotification(`Ticket #${tickets.length} adicionado em ${formatTimestamp(timestamp)}`, 'success');
+            showNotification(`Ticket #${tickets.length} adicionado`, 'success');
         }
 
         function removeTicket(ticketIndex) {
@@ -1215,12 +1243,6 @@
                 row["Quantidade de Tickets"] = ticketStorage[index].length;
             } else row["Quantidade de Tickets"] = 0;
             
-            const daysDiff = calculateDaysDifference(row["Data Aviso"]);
-            if (daysDiff !== null) {
-                row["Dias desde Aviso"] = daysDiff;
-                row["Percentual do Prazo"] = `${Math.min(Math.round((daysDiff / 30) * 100), 100)}%`;
-            }
-            
             concludedData.push(row);
             excelData.splice(index, 1);
             delete ticketStorage[index];
@@ -1235,46 +1257,31 @@
             });
             ticketStorage = newTicketStorage;
             
-            const newReasonsStorage = {};
-            Object.keys(vehicleNotDeliveredReasons).forEach(key => {
-                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
-                newReasonsStorage[newKey] = vehicleNotDeliveredReasons[key];
-            });
-            vehicleNotDeliveredReasons = newReasonsStorage;
-            
-            const newHistoryStorage = {};
-            Object.keys(reasonHistory).forEach(key => {
-                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
-                newHistoryStorage[newKey] = reasonHistory[key];
-            });
-            reasonHistory = newHistoryStorage;
-            
-            const newCriticalStorage = {};
-            Object.keys(criticalStatus).forEach(key => {
-                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
-                newCriticalStorage[newKey] = criticalStatus[key];
-            });
-            criticalStatus = newCriticalStorage;
-            
             saveToStorage();
             renderTickets();
             renderConcluded();
             updateBadges();
-            showNotification(`✅ Reparo da placa ${row["Placa"]} concluído!`, 'success');
+            if (document.getElementById("performanceTab").style.display !== "none") {
+                renderPerformance();
+            }
+            showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
         }
 
         function deleteConcluded(index) {
-            if (confirm("Remover este reparo do histórico permanentemente?")) {
+            if (confirm("Remover este reparo do histórico?")) {
                 concludedData.splice(index, 1);
                 saveToStorage();
                 renderConcluded();
                 updateBadges();
-                showNotification("Reparo removido do histórico!", 'success');
+                if (document.getElementById("performanceTab").style.display !== "none") {
+                    renderPerformance();
+                }
+                showNotification("Reparo removido!", 'success');
             }
         }
 
         function clearAllData() {
-            if (confirm("⚠️ ATENÇÃO! Isso irá remover TODOS os dados (acompanhamento e concluídos). Esta ação não pode ser desfeita. Confirmar?")) {
+            if (confirm("⚠️ ATENÇÃO! Remover TODOS os dados?")) {
                 excelData = [];
                 concludedData = [];
                 ticketStorage = {};
@@ -1287,7 +1294,10 @@
                 renderConcluded();
                 renderUploadHistory();
                 updateBadges();
-                showNotification("Todos os dados foram removidos!", 'success');
+                if (document.getElementById("performanceTab").style.display !== "none") {
+                    renderPerformance();
+                }
+                showNotification("Todos os dados removidos!", 'success');
             }
         }
 
@@ -1295,18 +1305,8 @@
             renderTickets();
             renderConcluded();
             updateBadges();
-            
-            const filterInfo = document.getElementById("filterInfo");
-            const filterText = document.getElementById("filterText");
-            let filterMessages = [];
-            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
-            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity === '1' ? 'Baixa' : (currentComplexity === '2' ? 'Média' : 'Alta')}`);
-            
-            if (filterMessages.length > 0) {
-                filterInfo.classList.remove("hidden");
-                filterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
-            } else {
-                filterInfo.classList.add("hidden");
+            if (document.getElementById("performanceTab").style.display !== "none") {
+                renderPerformance();
             }
         }
 
@@ -1325,12 +1325,12 @@
             totalSpan.textContent = filteredData.length;
             
             if (filteredData.length === 0) {
-                container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-inbox text-5xl mb-4 opacity-50"></i><p class="text-lg">Nenhum reparo em andamento</p><p class="text-sm mt-2">Faça upload da base para começar</p></div>`;
+                container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-inbox text-5xl mb-4 opacity-50"></i><p>Nenhum reparo em andamento</p></div>`;
                 return;
             }
             
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
-                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
             </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
@@ -1345,7 +1345,7 @@
                 const daysDiff = calculateDaysDifference(row["Data Aviso"]);
                 const progressPercentage = getProgressPercentage(daysDiff);
                 const progressColor = getProgressBarColor(daysDiff);
-                const displayText = daysDiff !== null ? `${daysDiff} / 30 dias` : "Data inválida";
+                const displayText = daysDiff !== null ? `${daysDiff} / 30` : "Inválida";
                 
                 const complexityClass = row["Complexidade"] === "1" ? "complexity-1" : (row["Complexidade"] === "2" ? "complexity-2" : (row["Complexidade"] === "3" ? "complexity-3" : ""));
                 
@@ -1362,19 +1362,19 @@
                 });
                 
                 html += `<tr>
-                    <td class="font-semibold">${row["Placa"] || "-"}</td>
-                    <td>${row["Cons.Técnico"] || "-"}</td>
-                    <td>${row["Responsável"] || "-"}</td>
-                    <td>${row["Equipe"] || "-"}</td>
-                    <td>${row["Oficina"] || "-"}</td>
-                    <td>${row["Marca/Modelo"] || "-"}</td>
-                    <td>${row["Data Aviso"] || "-"}</td>
+                    <td class="font-semibold">${row["Placa"]}</td>
+                    <td>${row["Cons.Técnico"]}</td>
+                    <td>${row["Responsável"]}</td>
+                    <td>${row["Equipe"]}</td>
+                    <td>${row["Oficina"]}</td>
+                    <td>${row["Marca/Modelo"]}</td>
+                    <td>${row["Data Aviso"]}</td>
                     <td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
                     <td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td>
                     <td><span class="status-badge ${statusClass}">${status}</span></td>
                     <td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td>
                     <td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>
-                    <td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td>
+                    <td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i></button></td>
                 </tr>`;
             });
             
@@ -1384,8 +1384,6 @@
 
         function renderConcluded() {
             const container = document.getElementById("concludedList");
-            const concludedFilterInfo = document.getElementById("concludedFilterInfo");
-            const concludedFilterText = document.getElementById("concludedFilterText");
             
             let filteredData = [...concludedData];
             if (currentResponsavel) {
@@ -1396,46 +1394,33 @@
             }
             
             if (filteredData.length === 0) {
-                container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i><p class="text-lg">Nenhum reparo concluído</p></div>`;
+                container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i><p>Nenhum reparo concluído</p></div>`;
                 return;
             }
             
-            let filterMessages = [];
-            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
-            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity === '1' ? 'Baixa' : (currentComplexity === '2' ? 'Média' : 'Alta')}`);
-            
-            if (filterMessages.length > 0) {
-                concludedFilterInfo.classList.remove("hidden");
-                concludedFilterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
-            } else {
-                concludedFilterInfo.classList.add("hidden");
-            }
-            
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
-                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Crítico</th><th>Data Conclusão</th><th>Detalhes</th><th>Ações</th>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th><th>Ações</th>
             </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
                 const conclusaoDate = row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao);
-                const hasTickets = row["Quantidade de Tickets"] > 0;
                 const complexityClass = row["Complexidade"] === "1" ? "complexity-1" : (row["Complexidade"] === "2" ? "complexity-2" : (row["Complexidade"] === "3" ? "complexity-3" : ""));
-                const criticalClass = row["Crítico"] === "Sim" ? "critical-badge-yes" : (row["Crítico"] === "Não" ? "critical-badge-no" : "");
+                const criticalClass = row["Crítico"] === "Sim" ? "critical-badge-yes" : "critical-badge-no";
                 
                 html += `<tr>
-                    <td class="font-semibold">${row["Placa"] || "-"}</td>
-                    <td>${row["Cons.Técnico"] || "-"}</td>
-                    <td>${row["Responsável"] || "-"}</td>
-                    <td>${row["Equipe"] || "-"}</td>
-                    <td>${row["Oficina"] || "-"}</td>
-                    <td>${row["Marca/Modelo"] || "-"}</td>
-                    <td>${row["Data Aviso"] || "-"}</td>
-                    <td>${row["Complexidade"] !== "-" && row["Complexidade"] ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
+                    <td class="font-semibold">${row["Placa"]}</td>
+                    <td>${row["Cons.Técnico"]}</td>
+                    <td>${row["Responsável"]}</td>
+                    <td>${row["Oficina"]}</td>
+                    <td>${row["Marca/Modelo"]}</td>
+                    <td>${row["Data Aviso"]}</td>
+                    <td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
                     <td>${row["Veículo não Entregue"] || "-"}</td>
-                    <td>${row["Crítico"] ? `<span class="${criticalClass}">${row["Crítico"]}</span>` : "-"}</td>
+                    <td><span class="${criticalClass}">${row["Crítico"] || "Não"}</span></td>
                     <td>${conclusaoDate}</td>
-                    <td><button class="text-purple-600 hover:text-purple-800 text-sm font-medium" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Ver Detalhes</button>${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}</td>
-                    <td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i> Remover</button></td>
+                    <td><button class="text-purple-600 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Detalhes</button></td>
+                    <td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i></button></td>
                 </tr>`;
             });
             
@@ -1443,15 +1428,156 @@
             container.innerHTML = html;
         }
 
+        function renderPerformance() {
+            // Dados por responsável
+            const responsavelStats = {};
+            responsaveisList.forEach(r => {
+                responsavelStats[r.value] = { andamento: 0, concluidos: 0, total: 0 };
+            });
+            
+            excelData.forEach(item => {
+                const resp = item["Responsável"];
+                if (resp && responsavelStats[resp]) {
+                    responsavelStats[resp].andamento++;
+                    responsavelStats[resp].total++;
+                }
+            });
+            
+            concludedData.forEach(item => {
+                const resp = item["Responsável"];
+                if (resp && responsavelStats[resp]) {
+                    responsavelStats[resp].concluidos++;
+                    responsavelStats[resp].total++;
+                }
+            });
+            
+            const totalAndamento = excelData.length;
+            const totalConcluidos = concludedData.length;
+            const totalGeral = totalAndamento + totalConcluidos;
+            const taxaConclusao = totalGeral > 0 ? ((totalConcluidos / totalGeral) * 100).toFixed(1) : 0;
+            
+            document.getElementById("totalReparos").textContent = totalGeral;
+            document.getElementById("totalAndamento").textContent = totalAndamento;
+            document.getElementById("totalConcluidos").textContent = totalConcluidos;
+            document.getElementById("taxaConclusao").textContent = `${taxaConclusao}%`;
+            
+            // Gráfico de Performance por Responsável
+            const ctx1 = document.getElementById("performanceChart").getContext("2d");
+            if (performanceChart) performanceChart.destroy();
+            performanceChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(responsavelStats),
+                    datasets: [
+                        { label: 'Em Andamento', data: Object.values(responsavelStats).map(s => s.andamento), backgroundColor: '#3b82f6', borderRadius: 8 },
+                        { label: 'Concluídos', data: Object.values(responsavelStats).map(s => s.concluidos), backgroundColor: '#10b981', borderRadius: 8 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } }
+            });
+            
+            // Gráfico de Status
+            const ctx2 = document.getElementById("statusChart").getContext("2d");
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: { labels: ['Em Andamento', 'Concluídos'], datasets: [{ data: [totalAndamento, totalConcluidos], backgroundColor: ['#3b82f6', '#10b981'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            
+            // Produtividade Diária (últimos 30 dias)
+            const dailyData = {};
+            const last30Days = [];
+            const today = new Date();
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(today.getDate() - i);
+                const dateStr = date.toLocaleDateString('pt-BR');
+                last30Days.push(dateStr);
+                dailyData[dateStr] = 0;
+            }
+            
+            concludedData.forEach(item => {
+                if (item.dataConclusao) {
+                    const date = new Date(item.dataConclusao);
+                    const dateStr = date.toLocaleDateString('pt-BR');
+                    if (dailyData[dateStr] !== undefined) dailyData[dateStr]++;
+                }
+            });
+            
+            const dailyValues = last30Days.map(d => dailyData[d] || 0);
+            const avgDaily = (dailyValues.reduce((a, b) => a + b, 0) / 30).toFixed(1);
+            
+            const ctx3 = document.getElementById("dailyProductivityChart").getContext("2d");
+            if (dailyChart) dailyChart.destroy();
+            dailyChart = new Chart(ctx3, {
+                type: 'line',
+                data: { labels: last30Days, datasets: [{ label: `Conclusões (Média: ${avgDaily}/dia)`, data: dailyValues, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#8b5cf6' }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } }
+            });
+            
+            // Tabela de Média Diária por Responsável
+            const avgTableBody = document.getElementById("avgTableBody");
+            const avgHtml = [];
+            for (const resp of responsaveisList) {
+                const respConcluidos = concludedData.filter(item => item["Responsável"] === resp.value).length;
+                const avgDailyResp = (respConcluidos / 30).toFixed(1);
+                avgHtml.push(`<tr><td class="py-2">${resp.label}</td><td class="text-center py-2">${avgDailyResp}/dia</td><td class="text-center py-2">${respConcluidos}</td>`);
+            }
+            avgTableBody.innerHTML = avgHtml.join("");
+            
+            // Calendário
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const calendarContainer = document.getElementById("calendarContainer");
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+            
+            const conclusionsByDate = {};
+            concludedData.forEach(item => {
+                if (item.dataConclusao) {
+                    const date = new Date(item.dataConclusao);
+                    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+                        const dateStr = date.getDate();
+                        conclusionsByDate[dateStr] = (conclusionsByDate[dateStr] || 0) + 1;
+                    }
+                }
+            });
+            
+            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            
+            let html = `<div class="text-center mb-4"><h4 class="font-bold text-lg">${monthNames[currentMonth]} ${currentYear}</h4></div>`;
+            html += `<div class="calendar-grid">`;
+            weekDays.forEach(day => { html += `<div class="text-center font-semibold text-sm py-2">${day}</div>`; });
+            
+            const startOffset = firstDayOfMonth.getDay();
+            for (let i = 0; i < startOffset; i++) { html += `<div class="calendar-day opacity-50"></div>`; }
+            
+            for (let d = 1; d <= lastDayOfMonth.getDate(); d++) {
+                const hasConclusion = conclusionsByDate[d] > 0;
+                const isToday = d === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                let dayClass = "calendar-day";
+                if (hasConclusion) dayClass += " has-conclusion";
+                if (isToday) dayClass += " today";
+                html += `<div class="${dayClass}"><div class="day-number">${d}</div>${hasConclusion ? `<div class="day-count">✅ ${conclusionsByDate[d]}</div>` : ''}</div>`;
+            }
+            html += `</div>`;
+            calendarContainer.innerHTML = html;
+        }
+
         function handleResponsavelChange() {
-            const select = document.getElementById("userSelect");
-            currentResponsavel = select.value || null;
+            currentResponsavel = document.getElementById("userSelect").value || null;
             if (currentResponsavel) {
                 const userData = responsaveisList.find(r => r.value === currentResponsavel);
                 currentTeam = userData ? userData.equipe : null;
-                const badge = document.getElementById("userBadge");
-                badge.innerHTML = `<i class="fas fa-user-check mr-2"></i>${currentResponsavel} • ${currentTeam}`;
-                badge.classList.remove("hidden");
+                document.getElementById("userBadge").innerHTML = `<i class="fas fa-user-check mr-2"></i>${currentResponsavel} • ${currentTeam}`;
+                document.getElementById("userBadge").classList.remove("hidden");
             } else {
                 currentTeam = null;
                 document.getElementById("userBadge").classList.add("hidden");
@@ -1460,8 +1586,7 @@
         }
 
         function handleComplexityChange() {
-            const select = document.getElementById("complexityFilter");
-            currentComplexity = select.value || null;
+            currentComplexity = document.getElementById("complexityFilter").value || null;
             applyFilters();
         }
 
@@ -1495,10 +1620,18 @@
             });
             userSelect.addEventListener("change", handleResponsavelChange);
             
-            const complexityFilter = document.getElementById("complexityFilter");
-            complexityFilter.addEventListener("change", handleComplexityChange);
-            
+            document.getElementById("complexityFilter").addEventListener("change", handleComplexityChange);
             document.getElementById("clearAllDataBtn").addEventListener("click", clearAllData);
+            document.getElementById("clearConcludedBtn").addEventListener("click", () => {
+                if (confirm("Limpar histórico de concluídos?")) {
+                    concludedData = [];
+                    saveToStorage();
+                    renderConcluded();
+                    updateBadges();
+                    renderPerformance();
+                    showNotification("Histórico limpo!", 'success');
+                }
+            });
             
             document.querySelectorAll(".nav-tab").forEach(btn => {
                 btn.addEventListener("click", () => {
@@ -1508,8 +1641,10 @@
                     document.getElementById("uploadTab").style.display = tabId === "upload" ? "block" : "none";
                     document.getElementById("ticketsTab").style.display = tabId === "tickets" ? "block" : "none";
                     document.getElementById("concludedTab").style.display = tabId === "concluded" ? "block" : "none";
+                    document.getElementById("performanceTab").style.display = tabId === "performance" ? "block" : "none";
                     if (tabId === "tickets") renderTickets();
                     if (tabId === "concluded") renderConcluded();
+                    if (tabId === "performance") renderPerformance();
                     if (tabId === "upload") renderUploadHistory();
                 });
             });
@@ -1524,7 +1659,7 @@
                 dropZone.classList.remove("drag-active");
                 const file = e.dataTransfer.files[0];
                 if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) processExcelFile(file);
-                else alert("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
+                else alert("Envie um arquivo Excel");
             });
             fileInput.addEventListener("change", (e) => { if (e.target.files[0]) processExcelFile(e.target.files[0]); });
             
@@ -1533,15 +1668,6 @@
                     document.querySelector(".nav-tab[data-tab='tickets']").click();
                     renderTickets();
                     updateBadges();
-                }
-            });
-            document.getElementById("clearConcludedBtn").addEventListener("click", () => {
-                if (confirm("Limpar todo o histórico de reparos concluídos?")) {
-                    concludedData = [];
-                    saveToStorage();
-                    renderConcluded();
-                    updateBadges();
-                    showNotification("Histórico de concluídos limpo!", 'success');
                 }
             });
             
