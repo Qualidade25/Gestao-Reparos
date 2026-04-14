@@ -226,6 +226,16 @@
             min-width: 55px;
         }
 
+        .status-aprovacao-badge {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #e0e7ff;
+            color: #4f46e5;
+        }
+
         .progress-container {
             width: 100%;
             background-color: #f1f5f9;
@@ -457,16 +467,6 @@
             gap: 0.5rem;
             align-items: center;
         }
-
-        .status-badge-aprovacao {
-            display: inline-block;
-            padding: 0.25rem 0.625rem;
-            border-radius: 2rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            background: #e0e7ff;
-            color: #4f46e5;
-        }
     </style>
 </head>
 <body>
@@ -494,10 +494,22 @@
                         <div class="relative">
                             <i class="fas fa-chart-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                             <select id="complexityFilter" class="filter-select pl-9">
-                                <option value="">Todas</option>
+                                <option value="">🎯 Todas Complexidades</option>
                                 <option value="1">1</option>
                                 <option value="2">2</option>
                                 <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-tag absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <select id="statusAprovacaoFilter" class="filter-select pl-9">
+                                <option value="">📌 Todos os Status</option>
+                                <option value="Aprovado">✅ Aprovado</option>
+                                <option value="Documentos Fiscais">📄 Documentos Fiscais</option>
+                                <option value="Veículo Entregue ao Consumidor">🚗 Veículo Entregue ao Consumidor</option>
+                                <option value="Pago">💰 Pago</option>
+                                <option value="Documentos Fiscais em Análise">🔍 Documentos Fiscais em Análise</option>
+                                <option value="Liberado para pagamento">📝 Liberado para pagamento</option>
                             </select>
                         </div>
                     </div>
@@ -712,11 +724,11 @@
                             <div class="overflow-x-auto max-h-80">
                                 <table class="min-w-full" id="avgTable">
                                     <thead><tr><th class="text-left py-2">Responsável</th><th class="text-center py-2">Média Diária</th><th class="text-center py-2">Total Concluídos</th></tr></thead>
-                                    <tbody id="avgTableBody"><tr><td colspan="3" class="text-center py-8 text-gray-500">Carregando...</td></tr></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                                    <tbody id="avgTableBody"><tr><td colspan="3" class="text-center py-8 text-gray-500">Carregando...<\/td><\/tr><\/tbody>
+                                <\/table>
+                            <\/div>
+                        <\/div>
+                    <\/div>
 
                     <div class="performance-card">
                         <div class="flex justify-between items-center mb-4">
@@ -782,6 +794,7 @@
         let uploadHistory = [];
         let currentResponsavel = null;
         let currentComplexity = null;
+        let currentStatusAprovacao = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
@@ -907,6 +920,7 @@
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
             const exportData = filteredData.map(row => {
                 const idx = excelData.findIndex(r => r === row);
@@ -981,19 +995,15 @@
         function formatDate(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return null;
             
-            // Se for número serial do Excel
             if (typeof dateValue === 'number' && dateValue > 40000) {
                 const date = new Date((dateValue - 25569) * 86400 * 1000);
                 return date;
             }
             
-            // Se for string
             if (typeof dateValue === 'string') {
-                // Tentar parse direto
                 let date = new Date(dateValue);
                 if (!isNaN(date.getTime())) return date;
                 
-                // Tentar formato DD/MM/AAAA
                 const parts = dateValue.split('/');
                 if (parts.length === 3) {
                     const day = parseInt(parts[0]);
@@ -1005,7 +1015,6 @@
                     }
                 }
                 
-                // Tentar formato AAAA-MM-DD
                 const parts2 = dateValue.split('-');
                 if (parts2.length === 3) {
                     const year = parseInt(parts2[0]);
@@ -1146,7 +1155,7 @@
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
                 const complexidadeIndex = 33;
-                const statusAprovacaoIndex = 22;
+                const statusAprovacaoIndex = 21;
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1208,7 +1217,7 @@
                 saveToStorage();
                 renderUploadHistory();
                 
-                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Datas convertidas para formato BR (dd/mm/aaaa)<br>📌 Status Aprovação importado da Coluna W</span>`;
+                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Datas convertidas para formato BR (dd/mm/aaaa)<br>📌 Status Aprovação importado da Coluna V</span>`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
                 showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
             };
@@ -1324,6 +1333,20 @@
             renderConcluded();
             updateBadges();
             if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
+            
+            const filterInfo = document.getElementById("filterInfo");
+            const filterText = document.getElementById("filterText");
+            let filterMessages = [];
+            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            if (currentStatusAprovacao) filterMessages.push(`Status: ${currentStatusAprovacao}`);
+            
+            if (filterMessages.length > 0) {
+                filterInfo.classList.remove("hidden");
+                filterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
+            } else {
+                filterInfo.classList.add("hidden");
+            }
         }
 
         function renderTickets() {
@@ -1333,6 +1356,7 @@
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
             totalSpan.textContent = filteredData.length;
             
@@ -1367,7 +1391,7 @@
                 
                 html += `<tr><td class="font-semibold">${row["Placa"]}</td><td>${row["Cons.Técnico"]}</td><td>${row["Responsável"]}</td><td>${row["Equipe"]}</td><td>${row["Oficina"]}</td><td>${row["Marca/Modelo"]}</td><td>${row["Data Aviso"]}</td>`;
                 html += `<td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>`;
-                html += `<td><span class="status-badge-aprovacao">${currentStatusAprov}</span></td>`;
+                html += `<td><span class="status-aprovacao-badge">${currentStatusAprov}</span></td>`;
                 html += `<td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td>`;
                 html += `<td><span class="status-badge ${statusClass}">${status}</span></td>`;
                 html += `<td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td>`;
@@ -1383,6 +1407,7 @@
             let filteredData = [...concludedData];
             if (currentResponsavel) filteredData = filteredData.filter(item => item["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(item => item["Complexidade"] === currentComplexity);
+            if (currentStatusAprovacao) filteredData = filteredData.filter(item => item["Status Aprovação"] === currentStatusAprovacao);
             
             if (filteredData.length === 0) {
                 container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i><p>Nenhum reparo concluído</p></div>`;
@@ -1399,7 +1424,7 @@
                 
                 html += `<tr><td class="font-semibold">${row["Placa"]}</td><td>${row["Cons.Técnico"]}</td><td>${row["Responsável"]}</td><td>${row["Oficina"]}</td><td>${row["Marca/Modelo"]}</td><td>${row["Data Aviso"]}</td>`;
                 html += `<td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>`;
-                html += `<td><span class="status-badge-aprovacao">${row["Status Aprovação"] || "-"}</span></td>`;
+                html += `<td><span class="status-aprovacao-badge">${row["Status Aprovação"] || "-"}</span></td>`;
                 html += `<td>${row["Veículo não Entregue"] || "-"}</td>`;
                 html += `<td><span class="${criticalClass}">${row["Crítico"] || "Não"}</span></td>`;
                 html += `<td>${conclusaoDate}</td>`;
@@ -1496,14 +1521,21 @@
             applyFilters();
         }
 
+        function handleStatusAprovacaoChange() {
+            currentStatusAprovacao = document.getElementById("statusAprovacaoFilter").value || null;
+            applyFilters();
+        }
+
         function updateBadges() {
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
             let filteredConcluded = [...concludedData];
             if (currentResponsavel) filteredConcluded = filteredConcluded.filter(item => item["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredConcluded = filteredConcluded.filter(item => item["Complexidade"] === currentComplexity);
+            if (currentStatusAprovacao) filteredConcluded = filteredConcluded.filter(item => item["Status Aprovação"] === currentStatusAprovacao);
             
             const ticketsBadge = document.getElementById("ticketsBadge");
             const concludedBadge = document.getElementById("concludedBadge");
@@ -1520,6 +1552,7 @@
             responsaveisList.forEach(r => { const option = document.createElement("option"); option.value = r.value; option.textContent = `👤 ${r.label} (${r.equipe})`; userSelect.appendChild(option); });
             userSelect.addEventListener("change", handleResponsavelChange);
             document.getElementById("complexityFilter").addEventListener("change", handleComplexityChange);
+            document.getElementById("statusAprovacaoFilter").addEventListener("change", handleStatusAprovacaoChange);
             
             document.getElementById("exportTicketsBtn").addEventListener("click", exportTickets);
             document.getElementById("exportConcludedBtn").addEventListener("click", exportConcluded);
