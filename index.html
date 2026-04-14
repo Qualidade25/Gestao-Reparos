@@ -1157,6 +1157,9 @@
                 const complexidadeIndex = 33;
                 const statusAprovacaoIndex = 21;
                 
+                console.log("🔍 Processando arquivo Excel...");
+                console.log("Coluna V (Status Aprovação) - Índice:", statusAprovacaoIndex);
+                
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
                     const row = rawData[i];
@@ -1171,7 +1174,9 @@
                     let statusAprovacao = (statusAprovacaoIndex < row.length && row[statusAprovacaoIndex]) ? String(row[statusAprovacaoIndex]) : "-";
                     
                     if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") complexidade = "-";
-                    if (statusAprovacao === "-" || statusAprovacao === "") statusAprovacao = "-";
+                    if (statusAprovacao === "-" || statusAprovacao === "" || statusAprovacao === "undefined") statusAprovacao = "-";
+                    
+                    console.log(`Linha ${i}: Placa=${row[placaIndex]}, Status Aprovação (Coluna V)=${statusAprovacao}`);
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -1197,7 +1202,10 @@
                     if (!placasExistentes.has(novo.Placa)) {
                         const novoIndex = excelData.length;
                         excelData.push(novo);
-                        if (novo["Status Aprovação"] !== "-") statusAprovacaoStorage[novoIndex] = novo["Status Aprovação"];
+                        if (novo["Status Aprovação"] !== "-") {
+                            statusAprovacaoStorage[novoIndex] = novo["Status Aprovação"];
+                            console.log(`✅ Status Aprovação armazenado para ${novo.Placa}: ${novo["Status Aprovação"]}`);
+                        }
                         adicionados++;
                     } else {
                         duplicados++;
@@ -1217,7 +1225,7 @@
                 saveToStorage();
                 renderUploadHistory();
                 
-                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Datas convertidas para formato BR (dd/mm/aaaa)<br>📌 Status Aprovação importado da Coluna V</span>`;
+                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Datas convertidas para formato BR (dd/mm/aaaa)<br>📌 Status Aprovação importado da Coluna V (Status Chamado)</span>`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
                 showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
             };
@@ -1398,7 +1406,7 @@
                 html += `<td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>`;
                 html += `<td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td></tr>`;
             });
-            html += `</tbody></table></div>`;
+            html += `</tbody><table></div>`;
             container.innerHTML = html;
         }
 
@@ -1469,7 +1477,7 @@
             for (const resp of responsaveisList) {
                 const respConcluidos = concludedData.filter(item => item["Responsável"] === resp.value).length;
                 const avgDailyResp = (respConcluidos / 30).toFixed(1);
-                avgHtml.push(`<tr><td class="py-2">${resp.label}</td><td class="text-center py-2">${avgDailyResp}/dia</td><td class="text-center py-2">${respConcluidos}</td>`);
+                avgHtml.push(`<td><td class="py-2">${resp.label}</td><td class="text-center py-2">${avgDailyResp}/dia</td><td class="text-center py-2">${respConcluidos}</td>`);
             }
             avgTableBody.innerHTML = avgHtml.join("");
             renderCalendar();
