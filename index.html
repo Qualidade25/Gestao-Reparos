@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Reparos - Acompanhamento de Oficinas</title>
+    <title>Gestão de Reparos - Sistema Avançado de Acompanhamento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,204 +15,243 @@
         }
 
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #818cf8;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
         }
 
         .nav-tab {
-            padding: 0.5rem 1.25rem;
-            border-radius: 0.75rem;
+            padding: 0.625rem 1.5rem;
+            border-radius: 1rem;
             font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            font-weight: 600;
+            transition: all 0.3s ease;
             cursor: pointer;
             background: transparent;
             border: none;
-            color: #6b7280;
+            color: #64748b;
+            letter-spacing: 0.3px;
         }
 
         .nav-tab:hover {
-            background: rgba(0, 0, 0, 0.05);
-            color: #1f2937;
+            background: rgba(102, 126, 234, 0.1);
+            color: #4f46e5;
+            transform: translateY(-2px);
         }
 
         .nav-tab.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 0.5rem 1.25rem;
-            border-radius: 0.75rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            padding: 0.625rem 1.5rem;
+            border-radius: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
             border: none;
             cursor: pointer;
+            font-size: 0.875rem;
         }
 
         .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
         .btn-secondary {
-            background: #f3f4f6;
-            color: #374151;
-            padding: 0.5rem 1.25rem;
+            background: #f8fafc;
+            color: #475569;
+            padding: 0.5rem 1rem;
             border-radius: 0.75rem;
             font-weight: 500;
-            transition: all 0.2s ease;
-            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
             cursor: pointer;
+            font-size: 0.75rem;
         }
 
         .btn-secondary:hover {
-            background: #e5e7eb;
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
         }
 
         .btn-warning {
             background: #fef3c7;
             color: #d97706;
-            padding: 0.5rem 1.25rem;
+            padding: 0.5rem 1rem;
             border-radius: 0.75rem;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             border: 1px solid #fde68a;
             cursor: pointer;
+            font-size: 0.75rem;
         }
 
         .btn-warning:hover {
             background: #fde68a;
+            transform: translateY(-1px);
         }
 
         .status-badge {
-            padding: 0.25rem 0.75rem;
+            padding: 0.375rem 0.875rem;
             border-radius: 2rem;
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-block;
+            text-align: center;
+            letter-spacing: 0.3px;
         }
 
         .status-open {
-            background: #fee2e2;
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
             color: #dc2626;
         }
 
         .status-progress {
-            background: #fef3c7;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
             color: #d97706;
         }
 
         .status-concluded {
-            background: #d1fae5;
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
             color: #059669;
-        }
-
-        .critical-badge-yes {
-            background: #dc2626;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .critical-badge-no {
-            background: #10b981;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-align: center;
         }
 
         .reason-select, .critical-select {
             width: 100%;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid #e5e7eb;
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.625rem;
+            border: 1px solid #e2e8f0;
             background-color: white;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-weight: 500;
         }
 
         .reason-select:hover, .critical-select:hover {
-            border-color: #667eea;
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
         .reason-select:focus, .critical-select:focus {
             outline: none;
-            ring: 2px solid #667eea;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
 
-        .complexity-badge-1 {
-            background: #10b981;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
+        .complexity-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: 2rem;
             font-size: 0.7rem;
-            font-weight: 600;
+            font-weight: 700;
             text-align: center;
-            display: inline-block;
-            min-width: 40px;
+            min-width: 45px;
+            letter-spacing: 0.5px;
         }
 
-        .complexity-badge-2 {
-            background: #f59e0b;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-align: center;
-            display: inline-block;
-            min-width: 40px;
+        .complexity-1 {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #059669;
+            border: 1px solid #34d399;
         }
 
-        .complexity-badge-3 {
-            background: #ef4444;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
+        .complexity-2 {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #d97706;
+            border: 1px solid #fbbf24;
+        }
+
+        .complexity-3 {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #dc2626;
+            border: 1px solid #f87171;
+        }
+
+        .critical-badge-yes {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #dc2626;
+            padding: 0.25rem 0.625rem;
+            border-radius: 2rem;
             font-size: 0.7rem;
-            font-weight: 600;
+            font-weight: 700;
             text-align: center;
             display: inline-block;
-            min-width: 40px;
+            min-width: 55px;
+        }
+
+        .critical-badge-no {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #059669;
+            padding: 0.25rem 0.625rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-align: center;
+            display: inline-block;
+            min-width: 55px;
         }
 
         .progress-container {
             width: 100%;
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
+            background-color: #f1f5f9;
+            border-radius: 1rem;
             overflow: hidden;
             position: relative;
             min-width: 120px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .progress-bar {
-            height: 1.5rem;
-            transition: width 0.3s ease;
+            height: 2rem;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 1rem;
         }
 
         .progress-bar-green {
@@ -229,19 +268,21 @@
 
         .progress-text {
             font-size: 0.7rem;
-            font-weight: 600;
+            font-weight: 700;
             white-space: nowrap;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .ticket-timestamp {
-            font-size: 0.7rem;
-            color: #6b7280;
+            font-size: 0.65rem;
+            color: #94a3b8;
             margin-top: 0.25rem;
         }
 
         .filter-info {
-            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
             border-left: 4px solid #667eea;
+            border-radius: 0.75rem;
         }
 
         .upload-history {
@@ -250,11 +291,12 @@
         }
 
         .history-item {
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            border-radius: 0.75rem;
         }
 
         .history-item:hover {
-            background: #f9fafb;
+            background: #f8fafc;
             transform: translateX(5px);
         }
 
@@ -267,54 +309,58 @@
 
         .filter-select {
             padding: 0.5rem 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid #e5e7eb;
-            background-color: white;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
             font-size: 0.875rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            min-width: 180px;
+            transition: all 0.3s ease;
+            min-width: 200px;
+            font-weight: 500;
         }
 
         .filter-select:hover {
-            border-color: #667eea;
-        }
-
-        input, select, textarea {
-            transition: all 0.2s ease;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            ring: 2px solid #667eea;
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
         .table-container {
             overflow-x: auto;
-            border-radius: 0.75rem;
+            border-radius: 1rem;
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         th {
             text-align: left;
-            padding: 0.75rem 1rem;
-            background: #f9fafb;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 0.875rem 1rem;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
         }
 
         td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.8rem;
+            color: #334155;
+        }
+
+        tr {
+            transition: all 0.2s ease;
         }
 
         tr:hover {
-            background: #f9fafb;
+            background: #f8fafc;
+            transform: scale(1.01);
         }
 
         .modal {
@@ -324,7 +370,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -332,225 +379,260 @@
 
         .modal.active {
             display: flex;
+            animation: fadeIn 0.3s ease;
         }
 
         .modal-content {
             background: white;
-            border-radius: 1rem;
-            max-width: 600px;
+            border-radius: 1.5rem;
+            max-width: 650px;
             width: 90%;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         .drag-active {
             border: 2px dashed #667eea;
             background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .fade-in {
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.4s ease;
         }
 
         .details-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
+            gap: 0.75rem;
             margin-top: 0.5rem;
         }
 
         .details-item {
             font-size: 0.75rem;
+            padding: 0.5rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
         }
 
         .details-label {
-            font-weight: 600;
-            color: #374151;
+            font-weight: 700;
+            color: #475569;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Estatísticas cards */
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            color: white;
+        }
+
+        .stats-number {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .stats-label {
+            font-size: 0.7rem;
+            opacity: 0.9;
+        }
+
+        /* Header melhorado */
+        .header-gradient {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
         }
     </style>
 </head>
 <body>
     <div id="app" class="min-h-screen">
-        <!-- Header -->
-        <header class="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-xl shadow-sm">
-            <div class="max-w-[98%] mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600">
-                        <i class="fas fa-database text-white text-lg"></i>
+        <!-- Header Melhorado -->
+        <header class="sticky top-0 z-40 border-b header-gradient shadow-lg">
+            <div class="max-w-[98%] mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg">
+                        <i class="fas fa-chart-line text-white text-xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold text-gray-900 tracking-tight">Gestão de Reparos</h1>
-                        <p class="text-xs text-gray-500">Sistema Acumulativo de Acompanhamento</p>
+                        <h1 class="text-xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Gestão de Reparos</h1>
+                        <p class="text-xs text-gray-500 mt-0.5">Sistema Inteligente de Acompanhamento</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-4 flex-wrap">
                     <div class="filter-group">
-                        <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-                            <i class="fas fa-user-tie text-gray-500 text-sm"></i>
-                            <select id="userSelect" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[180px]">
-                                <option value="">Todos os Responsáveis</option>
+                        <div class="relative">
+                            <i class="fas fa-user-tie absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <select id="userSelect" class="filter-select pl-9">
+                                <option value="">📋 Todos os Responsáveis</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-                            <i class="fas fa-chart-line text-gray-500 text-sm"></i>
-                            <select id="complexityFilter" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[150px]">
-                                <option value="">Todas Complexidades</option>
-                                <option value="1">Complexidade 1 (Baixa)</option>
-                                <option value="2">Complexidade 2 (Média)</option>
-                                <option value="3">Complexidade 3 (Alta)</option>
+                        <div class="relative">
+                            <i class="fas fa-chart-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <select id="complexityFilter" class="filter-select pl-9">
+                                <option value="">🎯 Todas Complexidades</option>
+                                <option value="1">🟢 Complexidade 1 (Baixa)</option>
+                                <option value="2">🟡 Complexidade 2 (Média)</option>
+                                <option value="3">🔴 Complexidade 3 (Alta)</option>
                             </select>
                         </div>
                     </div>
-                    <div id="userBadge" class="hidden text-xs px-3 py-1.5 rounded-full font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white"></div>
-                    <button id="clearAllDataBtn" class="btn-warning text-sm">
-                        <i class="fas fa-trash-alt mr-1"></i>Limpar Todos os Dados
+                    <div id="userBadge" class="hidden px-4 py-2 rounded-full font-semibold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"></div>
+                    <button id="clearAllDataBtn" class="btn-warning">
+                        <i class="fas fa-trash-alt mr-2"></i>Limpar Dados
                     </button>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="max-w-[98%] mx-auto px-4 py-6">
-            <div class="flex gap-1 mb-6 bg-gray-100/50 rounded-xl p-1 w-fit flex-wrap">
+        <main class="max-w-[98%] mx-auto px-6 py-8">
+            <!-- Tab Navigation Melhorada -->
+            <div class="flex gap-2 mb-8 bg-white/50 backdrop-blur-sm rounded-2xl p-1.5 w-fit shadow-sm">
                 <button class="nav-tab active" data-tab="upload">
                     <i class="fas fa-cloud-upload-alt mr-2"></i>
                     <span>Upload da Base</span>
                 </button>
                 <button class="nav-tab" data-tab="tickets">
-                    <i class="fas fa-ticket-alt mr-2"></i>
+                    <i class="fas fa-tasks mr-2"></i>
                     <span>Acompanhamento</span>
-                    <span id="ticketsBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
+                    <span id="ticketsBadge" class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
                 </button>
                 <button class="nav-tab" data-tab="concluded">
                     <i class="fas fa-check-circle mr-2"></i>
                     <span>Concluídos</span>
-                    <span id="concludedBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
+                    <span id="concludedBadge" class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500 text-white font-bold hidden">0</span>
                 </button>
             </div>
 
-            <!-- Tab Content: Upload -->
+            <!-- Tab Content: Upload Melhorado -->
             <div id="uploadTab" class="tab-content fade-in">
-                <div class="glass-card p-8">
-                    <div class="text-center mb-6">
-                        <div class="w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
-                            <i class="fas fa-file-excel text-4xl text-green-600"></i>
+                <div class="glass-card p-10">
+                    <div class="text-center mb-8">
+                        <div class="w-28 h-28 mx-auto bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-5 shadow-inner">
+                            <i class="fas fa-file-excel text-5xl text-green-600"></i>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Upload da Base de Dados</h2>
-                        <p class="text-gray-500 mb-6">Faça upload do arquivo Excel com os dados dos reparos</p>
-                        <p class="text-sm text-blue-600 bg-blue-50 p-2 rounded-lg inline-block">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Os dados serão ACUMULADOS com os existentes
-                        </p>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-3">Upload da Base de Dados</h2>
+                        <p class="text-gray-500 mb-4">Faça upload do arquivo Excel com os dados dos reparos</p>
+                        <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Os dados serão ACUMULADOS com os existentes</span>
+                        </div>
                     </div>
 
-                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 cursor-pointer hover:border-purple-400 transition text-center">
-                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-                        <p class="text-gray-600">Arraste e solte o arquivo Excel aqui ou</p>
-                        <p class="text-purple-600 font-medium mt-2">Clique para selecionar</p>
+                    <div id="dropZone" class="border-3 border-dashed border-gray-300 rounded-2xl p-10 mb-8 cursor-pointer hover:border-purple-400 transition-all duration-300 text-center bg-gray-50/50">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 text-lg">Arraste e solte o arquivo Excel aqui ou</p>
+                        <p class="text-purple-600 font-semibold mt-3">Clique para selecionar</p>
                         <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
                     </div>
 
-                    <div id="uploadInfo" class="hidden mb-6">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div id="uploadInfo" class="hidden mb-8">
+                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
                             <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                            <span id="fileName" class="text-green-800"></span>
+                            <span id="fileName" class="text-green-800 font-medium"></span>
                         </div>
                     </div>
 
-                    <div id="uploadHistory" class="mt-6">
-                        <h3 class="font-semibold text-gray-800 mb-3">
-                            <i class="fas fa-history text-purple-600 mr-2"></i>
-                            Histórico de Uploads
+                    <div id="uploadHistory" class="mt-8">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-history text-purple-600 text-lg"></i>
+                            <span>Histórico de Uploads</span>
                         </h3>
-                        <div id="uploadHistoryList" class="upload-history space-y-2">
-                            <div class="text-center text-gray-500 py-4">
-                                <i class="fas fa-inbox text-2xl mb-2 opacity-50 block"></i>
-                                Nenhum upload realizado ainda
+                        <div id="uploadHistoryList" class="upload-history space-y-3">
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>
+                                <p>Nenhum upload realizado ainda</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-6 flex justify-center">
-                        <button id="processFileBtn" class="btn-primary px-8 py-3 text-lg">
+                    <div class="mt-8 flex justify-center">
+                        <button id="processFileBtn" class="btn-primary px-8 py-3 text-base">
                             <i class="fas fa-arrow-right mr-2"></i>Processar e Ir para Acompanhamento
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab Content: Tickets (Acompanhamento) -->
+            <!-- Tab Content: Tickets Melhorado -->
             <div id="ticketsTab" class="tab-content fade-in" style="display: none;">
                 <div class="glass-card p-6">
-                    <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
-                        <h2 class="text-xl font-bold text-gray-800">
-                            <i class="fas fa-ticket-alt text-purple-600 mr-2"></i>
-                            Acompanhamento de Reparos
+                    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-tasks text-purple-600"></i>
+                            <span>Acompanhamento de Reparos</span>
                         </h2>
-                        <div class="text-sm text-gray-500">
-                            Total em Aberto: <span id="ticketsTotalCount" class="font-bold text-gray-800">0</span> reparos
+                        <div class="stats-card">
+                            <div class="stats-number" id="ticketsTotalCount">0</div>
+                            <div class="stats-label">Reparos em Aberto</div>
                         </div>
                     </div>
-                    <div id="filterInfo" class="mb-4 p-3 rounded-lg filter-info hidden">
+                    <div id="filterInfo" class="mb-5 p-4 rounded-xl filter-info hidden">
                         <i class="fas fa-filter text-purple-600 mr-2"></i>
-                        <span id="filterText" class="text-sm text-gray-700"></span>
+                        <span id="filterText" class="text-sm text-gray-700 font-medium"></span>
                     </div>
                     <div id="ticketsList" class="table-container">
-                        <div class="text-center py-12 text-gray-500">
-                            <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                            <p>Nenhum reparo em andamento</p>
-                            <p class="text-sm">Faça upload da base para começar</p>
+                        <div class="text-center py-16 text-gray-500">
+                            <i class="fas fa-inbox text-5xl mb-4 opacity-50"></i>
+                            <p class="text-lg">Nenhum reparo em andamento</p>
+                            <p class="text-sm mt-2">Faça upload da base para começar</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab Content: Concluded -->
+            <!-- Tab Content: Concluded Melhorado -->
             <div id="concludedTab" class="tab-content fade-in" style="display: none;">
                 <div class="glass-card p-6">
-                    <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
-                        <h2 class="text-xl font-bold text-gray-800">
-                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                            Reparos Concluídos
+                    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <span>Reparos Concluídos</span>
                         </h2>
-                        <button id="clearConcludedBtn" class="btn-secondary text-sm">
-                            <i class="fas fa-trash-alt mr-1"></i>Limpar Concluídos
+                        <button id="clearConcludedBtn" class="btn-secondary">
+                            <i class="fas fa-trash-alt mr-2"></i>Limpar Concluídos
                         </button>
                     </div>
-                    <div id="concludedFilterInfo" class="mb-4 p-3 rounded-lg filter-info hidden">
+                    <div id="concludedFilterInfo" class="mb-5 p-4 rounded-xl filter-info hidden">
                         <i class="fas fa-filter text-purple-600 mr-2"></i>
-                        <span id="concludedFilterText" class="text-sm text-gray-700"></span>
+                        <span id="concludedFilterText" class="text-sm text-gray-700 font-medium"></span>
                     </div>
                     <div id="concludedList" class="table-container">
-                        <div class="text-center py-12 text-gray-500">
-                            <i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i>
-                            <p>Nenhum reparo concluído ainda</p>
+                        <div class="text-center py-16 text-gray-500">
+                            <i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i>
+                            <p class="text-lg">Nenhum reparo concluído ainda</p>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <footer class="border-t border-gray-200 py-4 mt-8">
-            <p class="text-center text-xs text-gray-500">
-                Gestão de Reparos — Sistema Acumulativo de Acompanhamento de Oficinas
+        <footer class="border-t border-gray-200 py-6 mt-10">
+            <p class="text-center text-sm text-gray-500">
+                <i class="fas fa-chart-line mr-2"></i>Gestão de Reparos — Sistema Inteligente de Acompanhamento de Oficinas
             </p>
         </footer>
     </div>
 
+    <!-- Modais -->
     <div id="ticketModal" class="modal">
         <div class="modal-content p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="fas fa-ticket-alt text-purple-600 mr-2"></i>
-                    Gerenciar Ticket
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-ticket-alt text-purple-600"></i>
+                    <span>Gerenciar Ticket</span>
                 </h3>
-                <button class="closeModal text-gray-400 hover:text-gray-600">
+                <button class="closeModal text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -560,12 +642,12 @@
 
     <div id="detailsModal" class="modal">
         <div class="modal-content p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="fas fa-info-circle text-green-600 mr-2"></i>
-                    Detalhes do Reparo Concluído
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-green-600"></i>
+                    <span>Detalhes do Reparo Concluído</span>
                 </h3>
-                <button class="closeDetailsModal text-gray-400 hover:text-gray-600">
+                <button class="closeDetailsModal text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -580,7 +662,7 @@
         let ticketStorage = {};
         let vehicleNotDeliveredReasons = {};
         let reasonHistory = {};
-        let criticalStatus = {}; // Armazena status crítico (Sim/Não)
+        let criticalStatus = {};
         let uploadHistory = [];
         let currentResponsavel = null;
         let currentComplexity = null;
@@ -659,11 +741,6 @@
             }
             return { responsavel: null, equipe: null };
         }
-
-        const getEquipeByResponsavel = (responsavel) => {
-            const found = responsaveisList.find(r => r.value === responsavel);
-            return found ? found.equipe : null;
-        };
 
         function loadFromStorage() {
             try {
@@ -780,7 +857,7 @@
 
         function showNotification(message, type) {
             const notification = document.createElement('div');
-            notification.className = `fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
+            notification.className = `fixed bottom-5 right-5 z-50 p-4 rounded-xl shadow-2xl ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
             notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
@@ -792,9 +869,12 @@
             const modalBody = document.getElementById("detailsModalBody");
             
             let detailsHtml = `
-                <div class="space-y-4">
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-800 mb-3">Informações do Veículo</h4>
+                <div class="space-y-5">
+                    <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-car text-purple-600"></i>
+                            <span>Informações do Veículo</span>
+                        </h4>
                         <div class="details-grid">
                             <div class="details-item"><span class="details-label">Placa:</span> ${row["Placa"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
@@ -810,16 +890,31 @@
                     </div>
             `;
             
-            if (row["Veículo não Entregue"]) {
-                detailsHtml += `<div class="bg-yellow-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Motivo da Não Entrega</h4><p class="text-gray-700">${row["Veículo não Entregue"]}</p></div>`;
+            if (row["Veículo não Entregue"] && row["Veículo não Entregue"] !== "") {
+                detailsHtml += `
+                    <div class="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-5">
+                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                            <span>Motivo da Não Entrega</span>
+                        </h4>
+                        <p class="text-gray-700">${row["Veículo não Entregue"]}</p>
+                    </div>
+                `;
             }
             
             if (row["Histórico de Motivos"]) {
                 const history = JSON.parse(row["Histórico de Motivos"]);
                 if (history && history.length > 0) {
-                    detailsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos</h4><div class="space-y-2">`;
+                    detailsHtml += `
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-history text-blue-600"></i>
+                                <span>Histórico de Motivos</span>
+                            </h4>
+                            <div class="space-y-2">
+                    `;
                     history.forEach(entry => {
-                        detailsHtml += `<div class="text-sm"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-2">${entry.formattedTime}</span></div>`;
+                        detailsHtml += `<div class="text-sm p-2 bg-white rounded-lg"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-3">${entry.formattedTime}</span></div>`;
                     });
                     detailsHtml += `</div></div>`;
                 }
@@ -828,9 +923,22 @@
             if (row["Tickets"]) {
                 const tickets = JSON.parse(row["Tickets"]);
                 if (tickets && tickets.length > 0) {
-                    detailsHtml += `<div class="bg-purple-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Tickets (${tickets.length})</h4><div class="space-y-3">`;
+                    detailsHtml += `
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-ticket-alt text-purple-600"></i>
+                                <span>Tickets (${tickets.length})</span>
+                            </h4>
+                            <div class="space-y-3">
+                    `;
                     tickets.forEach(ticket => {
-                        detailsHtml += `<div class="border-b border-purple-200 pb-2 last:border-0"><div class="font-medium text-sm">#${ticket.numero} - ${ticket.status}</div><div class="text-sm text-gray-700 mt-1">${ticket.descricao}</div><div class="text-xs text-gray-500 mt-1">Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</div></div>`;
+                        detailsHtml += `
+                            <div class="bg-white rounded-lg p-3">
+                                <div class="font-semibold text-sm">#${ticket.numero} - <span class="text-purple-600">${ticket.status}</span></div>
+                                <div class="text-sm text-gray-700 mt-1">${ticket.descricao}</div>
+                                <div class="text-xs text-gray-500 mt-2">📅 Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</div>
+                            </div>
+                        `;
                     });
                     detailsHtml += `</div></div>`;
                 }
@@ -838,7 +946,21 @@
             
             const daysDiff = calculateDaysDifference(row["Data Aviso"]);
             if (daysDiff !== null) {
-                detailsHtml += `<div class="bg-green-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Prazo de Entrega</h4><div class="details-item"><span class="details-label">Dias desde o aviso:</span> ${daysDiff} dias</div><div class="mt-2"><div class="progress-container"><div class="progress-bar ${getProgressBarColor(daysDiff)}" style="width: ${Math.min((daysDiff / 30) * 100, 100)}%;"><span class="progress-text">${daysDiff} / 30 dias</span></div></div></div></div>`;
+                const progressColor = getProgressBarColor(daysDiff);
+                detailsHtml += `
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5">
+                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-green-600"></i>
+                            <span>Prazo de Entrega</span>
+                        </h4>
+                        <div class="mb-3"><span class="font-semibold">Dias desde o aviso:</span> ${daysDiff} dias</div>
+                        <div class="progress-container">
+                            <div class="progress-bar ${progressColor}" style="width: ${Math.min((daysDiff / 30) * 100, 100)}%;">
+                                <span class="progress-text">${daysDiff} / 30 dias</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
             
             detailsHtml += `</div>`;
@@ -846,7 +968,7 @@
             modal.classList.add("active");
         }
 
-        // Process Excel file - ACUMULA dados
+        // Process Excel file - ACUMULA dados com Complexidade da Coluna AH
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -886,7 +1008,12 @@
                     
                     const tecnicoNome = tecnicoIndex >= 0 && row[tecnicoIndex] ? String(row[tecnicoIndex]) : "-";
                     const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
-                    const complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]) : "-";
+                    let complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]).trim() : "-";
+                    
+                    // Garantir que complexidade seja apenas 1, 2 ou 3
+                    if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") {
+                        complexidade = "-";
+                    }
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -901,10 +1028,13 @@
                         "dataUpload": new Date().toISOString()
                     };
                     
-                    novosDados.push(item);
+                    // Só adiciona se a placa não estiver vazia
+                    if (item.Placa !== "-") {
+                        novosDados.push(item);
+                    }
                 }
                 
-                // ACUMULA os novos dados com os existentes
+                // ACUMULA os novos dados com os existentes (baseado na placa)
                 const placasExistentes = new Set(excelData.map(item => item.Placa));
                 let duplicados = 0;
                 let adicionados = 0;
@@ -932,9 +1062,14 @@
                 saveToStorage();
                 renderUploadHistory();
                 
-                document.getElementById("fileName").innerHTML = `Arquivo carregado: ${file.name}<br>
-                <span class="text-sm">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>
-                📌 Coluna AH (Complexidade) importada: 1, 2 ou 3</span>`;
+                document.getElementById("fileName").innerHTML = `
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Arquivo carregado: ${file.name}<br>
+                    <span class="text-sm block mt-2">
+                        📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>
+                        📌 Coluna AH (Complexidade) importada: ${novosDados.filter(d => d.Complexidade !== "-").length} registros com complexidade definida
+                    </span>
+                `;
                 document.getElementById("uploadInfo").classList.remove("hidden");
                 
                 showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
@@ -945,21 +1080,21 @@
         function renderUploadHistory() {
             const container = document.getElementById("uploadHistoryList");
             if (!uploadHistory.length) {
-                container.innerHTML = `<div class="text-center text-gray-500 py-4"><i class="fas fa-inbox text-2xl mb-2 opacity-50 block"></i>Nenhum upload realizado ainda</div>`;
+                container.innerHTML = `<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>Nenhum upload realizado ainda</div>`;
                 return;
             }
             
-            let html = `<div class="space-y-2">`;
+            let html = `<div class="space-y-3">`;
             uploadHistory.forEach((upload, idx) => {
                 html += `
-                    <div class="history-item bg-gray-50 rounded-lg p-3">
+                    <div class="history-item bg-gray-50 rounded-xl p-4 border border-gray-100">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <p class="font-medium text-sm">📄 ${upload.nome}</p>
+                                <p class="font-semibold text-gray-800">📄 ${upload.nome}</p>
                                 <p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p>
-                                <div class="flex gap-3 mt-2 text-xs">
-                                    <span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>
-                                    ${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}
+                                <div class="flex gap-4 mt-2 text-xs">
+                                    <span class="text-green-600 font-medium">✅ +${upload.registrosAdicionados} novos</span>
+                                    ${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600 font-medium">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -977,31 +1112,31 @@
             const modal = document.getElementById("ticketModal");
             const modalBody = document.getElementById("modalBody");
             
-            let ticketsHtml = `<p class="mb-3"><strong>Placa:</strong> ${row["Placa"] || "-"}</p>`;
-            ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}<br>
-            <strong>Data Aviso:</strong> ${row["Data Aviso"] || "-"} | <strong>Técnico:</strong> ${row["Cons.Técnico"] || "-"}<br>
-            <strong>Responsável:</strong> ${row["Responsável"] || "-"} | <strong>Equipe:</strong> ${row["Equipe"] || "-"}<br>
-            <strong>Complexidade:</strong> ${row["Complexidade"] || "-"}</p>`;
+            let ticketsHtml = `<div class="space-y-4">`;
+            ticketsHtml += `<div class="bg-gray-50 rounded-lg p-4"><p class="font-semibold">🚗 Placa: <span class="text-purple-600">${row["Placa"] || "-"}</span></p>`;
+            ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Marca/Modelo: ${row["Marca/Modelo"] || "-"}<br>
+            📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>
+            👤 Responsável: ${row["Responsável"] || "-"} | 👥 Equipe: ${row["Equipe"] || "-"}<br>
+            📊 Complexidade: ${row["Complexidade"] || "-"}</p></div>`;
             
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
-                ticketsHtml += `<div class="mb-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
+                ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-3 flex items-center gap-2"><i class="fas fa-history"></i> Histórico de Motivos:</h4>`;
                 reasonHistory[index].forEach(entry => {
-                    ticketsHtml += `<div class="bg-blue-50 rounded-lg p-2 mb-2 text-xs"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-2">${entry.formattedTime}</span></div>`;
+                    ticketsHtml += `<div class="bg-white rounded-lg p-2 mb-2 text-sm"><span class="font-medium">${entry.reason}</span><span class="text-gray-500 ml-2">${entry.formattedTime}</span></div>`;
                 });
                 ticketsHtml += `</div>`;
             }
             
             if (tickets.length > 0) {
-                ticketsHtml += `<div class="mb-4 max-h-60 overflow-y-auto"><h4 class="font-semibold mb-2">Tickets existentes:</h4>`;
+                ticketsHtml += `<div class="max-h-60 overflow-y-auto"><h4 class="font-semibold mb-3 flex items-center gap-2"><i class="fas fa-ticket-alt"></i> Tickets existentes (${tickets.length}):</h4>`;
                 tickets.forEach((ticket, i) => {
                     ticketsHtml += `
-                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2 border border-gray-200">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
-                                    <p class="font-medium">#${ticket.numero || i+1}</p>
-                                    <p class="text-sm text-gray-600">${ticket.descricao || "Sem descrição"}</p>
-                                    <p class="text-xs text-gray-400 mt-1">Status: <span class="font-medium">${ticket.status || "aberto"}</span></p>
-                                    <p class="ticket-timestamp"><i class="far fa-clock mr-1"></i>Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
+                                    <p class="font-semibold text-purple-600">#${ticket.numero || i+1} - ${ticket.status}</p>
+                                    <p class="text-sm text-gray-700 mt-1">${ticket.descricao || "Sem descrição"}</p>
+                                    <p class="text-xs text-gray-500 mt-2"><i class="far fa-clock mr-1"></i>Criado em: ${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
                                 </div>
                                 <button class="text-red-500 hover:text-red-700 text-sm ml-2" onclick="removeTicket(${i})"><i class="fas fa-trash-alt"></i></button>
                             </div>
@@ -1013,17 +1148,17 @@
             
             ticketsHtml += `
                 <div class="mt-4">
-                    <label class="block text-sm font-medium mb-2">Novo Ticket:</label>
-                    <textarea id="ticketDesc" class="w-full border rounded-lg p-2" rows="3" placeholder="Descreva o problema ou serviço..."></textarea>
-                    <div class="flex gap-2 mt-3">
-                        <select id="ticketStatus" class="border rounded-lg p-2 flex-1">
-                            <option value="aberto">Aberto</option>
-                            <option value="andamento">Em Andamento</option>
+                    <label class="block text-sm font-semibold mb-2">➕ Novo Ticket:</label>
+                    <textarea id="ticketDesc" class="w-full border border-gray-300 rounded-lg p-3" rows="3" placeholder="Descreva o problema ou serviço..."></textarea>
+                    <div class="flex gap-3 mt-3">
+                        <select id="ticketStatus" class="border border-gray-300 rounded-lg p-2 flex-1">
+                            <option value="aberto">🟢 Aberto</option>
+                            <option value="andamento">🟡 Em Andamento</option>
                         </select>
                         <button onclick="addTicket()" class="btn-primary"><i class="fas fa-plus"></i> Adicionar</button>
                     </div>
                 </div>
-            `;
+            </div>`;
             
             modalBody.innerHTML = ticketsHtml;
             modal.classList.add("active");
@@ -1125,7 +1260,7 @@
             renderTickets();
             renderConcluded();
             updateBadges();
-            showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
+            showNotification(`✅ Reparo da placa ${row["Placa"]} concluído!`, 'success');
         }
 
         function deleteConcluded(index) {
@@ -1161,16 +1296,15 @@
             renderConcluded();
             updateBadges();
             
-            // Update filter info text
             const filterInfo = document.getElementById("filterInfo");
             const filterText = document.getElementById("filterText");
             let filterMessages = [];
             if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
-            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity === '1' ? 'Baixa' : (currentComplexity === '2' ? 'Média' : 'Alta')}`);
             
             if (filterMessages.length > 0) {
                 filterInfo.classList.remove("hidden");
-                filterText.textContent = `Filtrando por: ${filterMessages.join(" | ")}`;
+                filterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
             } else {
                 filterInfo.classList.add("hidden");
             }
@@ -1180,7 +1314,7 @@
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
             
-            let filteredData = excelData;
+            let filteredData = [...excelData];
             if (currentResponsavel) {
                 filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             }
@@ -1191,11 +1325,13 @@
             totalSpan.textContent = filteredData.length;
             
             if (filteredData.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>Nenhum reparo em andamento</p><p class="text-sm">Faça upload da base para começar</p></div>`;
+                container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-inbox text-5xl mb-4 opacity-50"></i><p class="text-lg">Nenhum reparo em andamento</p><p class="text-sm mt-2">Faça upload da base para começar</p></div>`;
                 return;
             }
             
-            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
+            </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
@@ -1211,7 +1347,7 @@
                 const progressColor = getProgressBarColor(daysDiff);
                 const displayText = daysDiff !== null ? `${daysDiff} / 30 dias` : "Data inválida";
                 
-                const complexityClass = row["Complexidade"] === "1" ? "complexity-badge-1" : (row["Complexidade"] === "2" ? "complexity-badge-2" : (row["Complexidade"] === "3" ? "complexity-badge-3" : ""));
+                const complexityClass = row["Complexidade"] === "1" ? "complexity-1" : (row["Complexidade"] === "2" ? "complexity-2" : (row["Complexidade"] === "3" ? "complexity-3" : ""));
                 
                 let optionsHtml = `<option value="">Selecione...</option>`;
                 deliveryReasonOptions.forEach(option => {
@@ -1226,23 +1362,23 @@
                 });
                 
                 html += `<tr>
-                    <td><strong>${row["Placa"] || "-"}</strong></td>
+                    <td class="font-semibold">${row["Placa"] || "-"}</td>
                     <td>${row["Cons.Técnico"] || "-"}</td>
                     <td>${row["Responsável"] || "-"}</td>
                     <td>${row["Equipe"] || "-"}</td>
                     <td>${row["Oficina"] || "-"}</td>
                     <td>${row["Marca/Modelo"] || "-"}</td>
                     <td>${row["Data Aviso"] || "-"}</td>
-                    <td>${row["Complexidade"] !== "-" ? `<span class="${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
+                    <td>${row["Complexidade"] !== "-" ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
                     <td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td>
                     <td><span class="status-badge ${statusClass}">${status}</span></td>
                     <td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td>
                     <td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>
-                    <td><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td>
+                    <td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td>
                 </tr>`;
             });
             
-            html += `</tbody></table>`;
+            html += `</tbody></table></div>`;
             container.innerHTML = html;
         }
 
@@ -1251,7 +1387,7 @@
             const concludedFilterInfo = document.getElementById("concludedFilterInfo");
             const concludedFilterText = document.getElementById("concludedFilterText");
             
-            let filteredData = concludedData;
+            let filteredData = [...concludedData];
             if (currentResponsavel) {
                 filteredData = filteredData.filter(item => item["Responsável"] === currentResponsavel);
             }
@@ -1260,48 +1396,50 @@
             }
             
             if (filteredData.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i><p>Nenhum reparo concluído</p></div>`;
+                container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i><p class="text-lg">Nenhum reparo concluído</p></div>`;
                 return;
             }
             
             let filterMessages = [];
             if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
-            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity === '1' ? 'Baixa' : (currentComplexity === '2' ? 'Média' : 'Alta')}`);
             
             if (filterMessages.length > 0) {
                 concludedFilterInfo.classList.remove("hidden");
-                concludedFilterText.textContent = `Filtrando por: ${filterMessages.join(" | ")}`;
+                concludedFilterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
             } else {
                 concludedFilterInfo.classList.add("hidden");
             }
             
-            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Crítico</th><th>Data Conclusão</th><th>Detalhes</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Crítico</th><th>Data Conclusão</th><th>Detalhes</th><th>Ações</th>
+            </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
                 const conclusaoDate = row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao);
                 const hasTickets = row["Quantidade de Tickets"] > 0;
-                const complexityClass = row["Complexidade"] === "1" ? "complexity-badge-1" : (row["Complexidade"] === "2" ? "complexity-badge-2" : (row["Complexidade"] === "3" ? "complexity-badge-3" : ""));
+                const complexityClass = row["Complexidade"] === "1" ? "complexity-1" : (row["Complexidade"] === "2" ? "complexity-2" : (row["Complexidade"] === "3" ? "complexity-3" : ""));
                 const criticalClass = row["Crítico"] === "Sim" ? "critical-badge-yes" : (row["Crítico"] === "Não" ? "critical-badge-no" : "");
                 
                 html += `<tr>
-                    <td><strong>${row["Placa"] || "-"}</strong></td>
+                    <td class="font-semibold">${row["Placa"] || "-"}</td>
                     <td>${row["Cons.Técnico"] || "-"}</td>
                     <td>${row["Responsável"] || "-"}</td>
                     <td>${row["Equipe"] || "-"}</td>
                     <td>${row["Oficina"] || "-"}</td>
                     <td>${row["Marca/Modelo"] || "-"}</td>
                     <td>${row["Data Aviso"] || "-"}</td>
-                    <td>${row["Complexidade"] !== "-" && row["Complexidade"] ? `<span class="${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
+                    <td>${row["Complexidade"] !== "-" && row["Complexidade"] ? `<span class="complexity-badge ${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
                     <td>${row["Veículo não Entregue"] || "-"}</td>
                     <td>${row["Crítico"] ? `<span class="${criticalClass}">${row["Crítico"]}</span>` : "-"}</td>
                     <td>${conclusaoDate}</td>
-                    <td><button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Ver Detalhes</button>${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}</td>
+                    <td><button class="text-purple-600 hover:text-purple-800 text-sm font-medium" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Ver Detalhes</button>${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}</td>
                     <td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i> Remover</button></td>
                 </tr>`;
             });
             
-            html += `</tbody></table>`;
+            html += `</tbody></table></div>`;
             container.innerHTML = html;
         }
 
@@ -1312,7 +1450,7 @@
                 const userData = responsaveisList.find(r => r.value === currentResponsavel);
                 currentTeam = userData ? userData.equipe : null;
                 const badge = document.getElementById("userBadge");
-                badge.textContent = `${currentResponsavel} • ${currentTeam}`;
+                badge.innerHTML = `<i class="fas fa-user-check mr-2"></i>${currentResponsavel} • ${currentTeam}`;
                 badge.classList.remove("hidden");
             } else {
                 currentTeam = null;
@@ -1328,11 +1466,11 @@
         }
 
         function updateBadges() {
-            let filteredData = excelData;
+            let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
             
-            let filteredConcluded = concludedData;
+            let filteredConcluded = [...concludedData];
             if (currentResponsavel) filteredConcluded = filteredConcluded.filter(item => item["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredConcluded = filteredConcluded.filter(item => item["Complexidade"] === currentComplexity);
             
@@ -1352,7 +1490,7 @@
             responsaveisList.forEach(r => {
                 const option = document.createElement("option");
                 option.value = r.value;
-                option.textContent = `${r.label} (${r.equipe})`;
+                option.textContent = `👤 ${r.label} (${r.equipe})`;
                 userSelect.appendChild(option);
             });
             userSelect.addEventListener("change", handleResponsavelChange);
