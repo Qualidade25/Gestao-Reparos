@@ -898,7 +898,7 @@
             const statusLower = status.toLowerCase();
             if (statusLower.includes("aberto") || statusLower === "aberto") return "status-chamado-aberto";
             if (statusLower.includes("andamento") || statusLower === "em andamento") return "status-chamado-andamento";
-            if (statusLower.includes("conclu") || statusLower === "concluído") return "status-chamado-concluido";
+            if (statusLower.includes("concluído") || statusLower === "concluído") return "status-chamado-concluido";
             return "";
         }
 
@@ -1364,8 +1364,9 @@
                     <textarea id="ticketDesc" class="w-full border rounded-lg p-3" rows="3" placeholder="Descreva o problema..."></textarea>
                     <div class="flex gap-3 mt-3">
                         <select id="ticketStatus" class="border rounded-lg p-2 flex-1">
-                            <option value="aberto">🟢 Aberto</option>
+                            <option value="aberto">🔵 Aberto</option>
                             <option value="andamento">🟡 Em Andamento</option>
+                           <option value="concluido">🟢 Concluído</option>
                         </select>
                         <button onclick="addTicket()" class="btn-primary">Adicionar</button>
                     </div>
