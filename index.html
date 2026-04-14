@@ -980,7 +980,7 @@
             detailsHtml += `<div><span class="font-semibold">Oficina:</span> ${row["Oficina"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>`;
-            detailsHtml += `<div><span class="font-semibold">Complexidade:</span> ${row["Complexidade"] || "-"}</div>`;
+            detailsHtml += `<div><span class="font-semibold">Complex:</span> ${row["Complexidade"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Crítico:</span> ${row["Crítico"] || "-"}</div>`;
             detailsHtml += `<div><span class="font-semibold">Data Conclusão:</span> ${row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao)}</div>`;
             detailsHtml += `</div></div>`;
@@ -1033,7 +1033,7 @@
                 const oficinaIndex = 0;
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
-                const complexidadeIndex = 33;
+                const complexidadeIndex = 33; // Coluna AH
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1145,7 +1145,7 @@
             ticketsHtml += `<div class="bg-gray-50 rounded-lg p-4"><p class="font-semibold">🚗 Placa: ${row["Placa"] || "-"}</p>`;
             ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Modelo: ${row["Marca/Modelo"] || "-"}<br>`;
             ticketsHtml += `📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>`;
-            ticketsHtml += `👤 Responsável: ${row["Responsável"] || "-"} | 📊 Complexidade: ${row["Complexidade"] || "-"}</p></div>`;
+            ticketsHtml += `👤 Responsável: ${row["Responsável"] || "-"} | 📊 Complex: ${row["Complexidade"] || "-"}</p></div>`;
             
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
@@ -1330,7 +1330,7 @@
             }
             
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
-                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Comp.</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
             </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
@@ -1399,7 +1399,7 @@
             }
             
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
-                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Comp.</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th><th>Ações</th>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th><th>Ações</th>
             </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
