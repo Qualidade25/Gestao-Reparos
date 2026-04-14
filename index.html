@@ -112,6 +112,23 @@
             transform: translateY(-1px);
         }
 
+        .btn-export {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
         .status-badge {
             padding: 0.375rem 0.875rem;
             border-radius: 2rem;
@@ -434,6 +451,12 @@
             font-size: 0.7rem;
             color: #64748b;
         }
+
+        .btn-header {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -443,11 +466,11 @@
             <div class="max-w-[98%] mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg">
-                        <i class="fas fa-chart-line text-white text-xl"></i>
+                        <i class="fas fa-database text-white text-xl"></i>
                     </div>
                     <div>
                         <h1 class="text-xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Gestão de Reparos</h1>
-                        <p class="text-xs text-gray-500 mt-0.5">Sistema Inteligente de Acompanhamento</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Sistema Persistente de Acompanhamento</p>
                     </div>
                 </div>
 
@@ -470,9 +493,6 @@
                         </div>
                     </div>
                     <div id="userBadge" class="hidden px-4 py-2 rounded-full font-semibold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"></div>
-                    <button id="clearAllDataBtn" class="btn-warning text-sm px-4 py-2 rounded-xl bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition">
-                        <i class="fas fa-trash-alt mr-2"></i>Limpar Dados
-                    </button>
                 </div>
             </div>
         </header>
@@ -559,9 +579,14 @@
                             <i class="fas fa-tasks text-purple-600"></i>
                             <span>Acompanhamento de Reparos</span>
                         </h2>
-                        <div class="stats-card">
-                            <div class="stats-number" id="ticketsTotalCount">0</div>
-                            <div class="stats-label">Reparos em Aberto</div>
+                        <div class="btn-header">
+                            <button id="exportTicketsBtn" class="btn-export">
+                                <i class="fas fa-file-excel mr-2"></i>Exportar Excel
+                            </button>
+                            <div class="stats-card">
+                                <div class="stats-number" id="ticketsTotalCount">0</div>
+                                <div class="stats-label">Reparos em Aberto</div>
+                            </div>
                         </div>
                     </div>
                     <div id="filterInfo" class="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border-l-4 border-purple-600 hidden">
@@ -586,8 +611,8 @@
                             <i class="fas fa-check-circle text-green-600"></i>
                             <span>Reparos Concluídos</span>
                         </h2>
-                        <button id="clearConcludedBtn" class="btn-secondary">
-                            <i class="fas fa-trash-alt mr-2"></i>Limpar Concluídos
+                        <button id="exportConcludedBtn" class="btn-export">
+                            <i class="fas fa-file-excel mr-2"></i>Exportar Excel
                         </button>
                     </div>
                     <div id="concludedFilterInfo" class="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border-l-4 border-purple-600 hidden">
@@ -702,10 +727,15 @@
 
                     <!-- Calendário de Produtividade -->
                     <div class="performance-card">
-                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <i class="fas fa-calendar-alt text-purple-600"></i>
-                            <span>Calendário de Conclusões</span>
-                        </h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-purple-600"></i>
+                                <span>Calendário de Conclusões</span>
+                            </h3>
+                            <button id="exportPerformanceBtn" class="btn-export">
+                                <i class="fas fa-file-excel mr-2"></i>Exportar Relatório
+                            </button>
+                        </div>
                         <div id="calendarContainer"></div>
                     </div>
                 </div>
@@ -714,7 +744,7 @@
 
         <footer class="border-t border-gray-200 py-6 mt-10">
             <p class="text-center text-sm text-gray-500">
-                <i class="fas fa-chart-line mr-2"></i>Gestão de Reparos — Sistema Inteligente de Acompanhamento de Oficinas
+                <i class="fas fa-database mr-2"></i>Gestão de Reparos — Sistema Persistente de Acompanhamento de Oficinas
             </p>
         </footer>
     </div>
@@ -751,7 +781,7 @@
     </div>
 
     <script>
-        // Data stores
+        // Data stores - PERSISTENTES (independente do usuário)
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
@@ -877,6 +907,117 @@
             localStorage.setItem("uploadHistory", JSON.stringify(uploadHistory));
         }
 
+        // Funções de Exportação
+        function exportToExcel(data, filename, sheetName) {
+            if (!data || data.length === 0) {
+                alert("Não há dados para exportar!");
+                return;
+            }
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            XLSX.writeFile(wb, `${filename}_${new Date().toLocaleDateString('pt-BR')}.xlsx`);
+            showNotification(`Exportação concluída: ${filename}`, 'success');
+        }
+
+        function exportTickets() {
+            let filteredData = [...excelData];
+            if (currentResponsavel) {
+                filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            }
+            if (currentComplexity) {
+                filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            }
+            
+            const exportData = filteredData.map(row => ({
+                "Placa": row["Placa"],
+                "Técnico": row["Cons.Técnico"],
+                "Responsável": row["Responsável"],
+                "Equipe": row["Equipe"],
+                "Oficina": row["Oficina"],
+                "Marca/Modelo": row["Marca/Modelo"],
+                "Data Aviso": row["Data Aviso"],
+                "Complexidade": row["Complexidade"],
+                "Motivo Não Entrega": vehicleNotDeliveredReasons[excelData.findIndex(r => r === row)] || "",
+                "Crítico": criticalStatus[excelData.findIndex(r => r === row)] || "Não",
+                "Status": "Em Andamento"
+            }));
+            
+            exportToExcel(exportData, "acompanhamento_reparos", "Em Andamento");
+        }
+
+        function exportConcluded() {
+            let filteredData = [...concludedData];
+            if (currentResponsavel) {
+                filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            }
+            if (currentComplexity) {
+                filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            }
+            
+            const exportData = filteredData.map(row => ({
+                "Placa": row["Placa"],
+                "Técnico": row["Cons.Técnico"],
+                "Responsável": row["Responsável"],
+                "Equipe": row["Equipe"],
+                "Oficina": row["Oficina"],
+                "Marca/Modelo": row["Marca/Modelo"],
+                "Data Aviso": row["Data Aviso"],
+                "Complexidade": row["Complexidade"],
+                "Motivo Não Entrega": row["Veículo não Entregue"] || "",
+                "Crítico": row["Crítico"] || "Não",
+                "Data Conclusão": row.dataConclusaoFormatada || "",
+                "Quantidade Tickets": row["Quantidade de Tickets"] || 0
+            }));
+            
+            exportToExcel(exportData, "reparos_concluidos", "Concluídos");
+        }
+
+        function exportPerformance() {
+            const performanceData = [];
+            
+            // Dados por responsável
+            for (const resp of responsaveisList) {
+                const andamento = excelData.filter(item => item["Responsável"] === resp.value).length;
+                const concluidos = concludedData.filter(item => item["Responsável"] === resp.value).length;
+                const total = andamento + concluidos;
+                const taxa = total > 0 ? ((concluidos / total) * 100).toFixed(1) : 0;
+                
+                performanceData.push({
+                    "Responsável": resp.label,
+                    "Em Andamento": andamento,
+                    "Concluídos": concluidos,
+                    "Total": total,
+                    "Taxa de Conclusão": `${taxa}%`
+                });
+            }
+            
+            // Dados diários
+            const dailyStats = {};
+            concludedData.forEach(item => {
+                if (item.dataConclusao) {
+                    const date = new Date(item.dataConclusao).toLocaleDateString('pt-BR');
+                    dailyStats[date] = (dailyStats[date] || 0) + 1;
+                }
+            });
+            
+            const dailyData = Object.entries(dailyStats).map(([data, quantidade]) => ({
+                "Data": data,
+                "Conclusões": quantidade
+            })).sort((a, b) => new Date(a.Data.split('/').reverse().join('-')) - new Date(b.Data.split('/').reverse().join('-')));
+            
+            const wb = XLSX.utils.book_new();
+            const ws1 = XLSX.utils.json_to_sheet(performanceData);
+            const ws2 = XLSX.utils.json_to_sheet(dailyData);
+            
+            XLSX.utils.book_append_sheet(wb, ws1, "Performance por Responsável");
+            XLSX.utils.book_append_sheet(wb, ws2, "Produtividade Diária");
+            XLSX.writeFile(wb, `relatorio_performance_${new Date().toLocaleDateString('pt-BR')}.xlsx`);
+            
+            showNotification("Relatório de performance exportado!", 'success');
+        }
+
         function formatDate(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return null;
             if (typeof dateValue === 'number' && dateValue > 40000) {
@@ -936,10 +1077,6 @@
                 day: '2-digit', month: '2-digit', year: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
-        }
-
-        function formatDateOnly(date) {
-            return date.toLocaleDateString('pt-BR');
         }
 
         function updateDeliveryReason(index, reason) {
@@ -1033,7 +1170,7 @@
                 const oficinaIndex = 0;
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
-                const complexidadeIndex = 33; // Coluna AH
+                const complexidadeIndex = 33;
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1166,7 +1303,6 @@
                                     <p class="text-sm">${ticket.descricao}</p>
                                     <p class="text-xs text-gray-500">${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
                                 </div>
-                                <button class="text-red-500" onclick="removeTicket(${i})"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>
                     `;
@@ -1257,6 +1393,27 @@
             });
             ticketStorage = newTicketStorage;
             
+            const newReasonsStorage = {};
+            Object.keys(vehicleNotDeliveredReasons).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newReasonsStorage[newKey] = vehicleNotDeliveredReasons[key];
+            });
+            vehicleNotDeliveredReasons = newReasonsStorage;
+            
+            const newHistoryStorage = {};
+            Object.keys(reasonHistory).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newHistoryStorage[newKey] = reasonHistory[key];
+            });
+            reasonHistory = newHistoryStorage;
+            
+            const newCriticalStorage = {};
+            Object.keys(criticalStatus).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newCriticalStorage[newKey] = criticalStatus[key];
+            });
+            criticalStatus = newCriticalStorage;
+            
             saveToStorage();
             renderTickets();
             renderConcluded();
@@ -1265,40 +1422,6 @@
                 renderPerformance();
             }
             showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
-        }
-
-        function deleteConcluded(index) {
-            if (confirm("Remover este reparo do histórico?")) {
-                concludedData.splice(index, 1);
-                saveToStorage();
-                renderConcluded();
-                updateBadges();
-                if (document.getElementById("performanceTab").style.display !== "none") {
-                    renderPerformance();
-                }
-                showNotification("Reparo removido!", 'success');
-            }
-        }
-
-        function clearAllData() {
-            if (confirm("⚠️ ATENÇÃO! Remover TODOS os dados?")) {
-                excelData = [];
-                concludedData = [];
-                ticketStorage = {};
-                vehicleNotDeliveredReasons = {};
-                reasonHistory = {};
-                criticalStatus = {};
-                uploadHistory = [];
-                saveToStorage();
-                renderTickets();
-                renderConcluded();
-                renderUploadHistory();
-                updateBadges();
-                if (document.getElementById("performanceTab").style.display !== "none") {
-                    renderPerformance();
-                }
-                showNotification("Todos os dados removidos!", 'success');
-            }
         }
 
         function applyFilters() {
@@ -1374,7 +1497,7 @@
                     <td><span class="status-badge ${statusClass}">${status}</span></td>
                     <td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td>
                     <td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>
-                    <td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i></button></td>
+                    <td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td>
                 </tr>`;
             });
             
@@ -1399,7 +1522,7 @@
             }
             
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
-                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th><th>Ações</th>
+                <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Motivo</th><th>Crítico</th><th>Conclusão</th><th>Detalhes</th>
             </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
@@ -1420,7 +1543,6 @@
                     <td><span class="${criticalClass}">${row["Crítico"] || "Não"}</span></td>
                     <td>${conclusaoDate}</td>
                     <td><button class="text-purple-600 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Detalhes</button></td>
-                    <td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i></button></td>
                 </tr>`;
             });
             
@@ -1429,7 +1551,6 @@
         }
 
         function renderPerformance() {
-            // Dados por responsável
             const responsavelStats = {};
             responsaveisList.forEach(r => {
                 responsavelStats[r.value] = { andamento: 0, concluidos: 0, total: 0 };
@@ -1461,7 +1582,6 @@
             document.getElementById("totalConcluidos").textContent = totalConcluidos;
             document.getElementById("taxaConclusao").textContent = `${taxaConclusao}%`;
             
-            // Gráfico de Performance por Responsável
             const ctx1 = document.getElementById("performanceChart").getContext("2d");
             if (performanceChart) performanceChart.destroy();
             performanceChart = new Chart(ctx1, {
@@ -1476,7 +1596,6 @@
                 options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } }
             });
             
-            // Gráfico de Status
             const ctx2 = document.getElementById("statusChart").getContext("2d");
             if (statusChart) statusChart.destroy();
             statusChart = new Chart(ctx2, {
@@ -1485,7 +1604,6 @@
                 options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
             });
             
-            // Produtividade Diária (últimos 30 dias)
             const dailyData = {};
             const last30Days = [];
             const today = new Date();
@@ -1516,7 +1634,6 @@
                 options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } }
             });
             
-            // Tabela de Média Diária por Responsável
             const avgTableBody = document.getElementById("avgTableBody");
             const avgHtml = [];
             for (const resp of responsaveisList) {
@@ -1526,7 +1643,6 @@
             }
             avgTableBody.innerHTML = avgHtml.join("");
             
-            // Calendário
             renderCalendar();
         }
 
@@ -1621,17 +1737,11 @@
             userSelect.addEventListener("change", handleResponsavelChange);
             
             document.getElementById("complexityFilter").addEventListener("change", handleComplexityChange);
-            document.getElementById("clearAllDataBtn").addEventListener("click", clearAllData);
-            document.getElementById("clearConcludedBtn").addEventListener("click", () => {
-                if (confirm("Limpar histórico de concluídos?")) {
-                    concludedData = [];
-                    saveToStorage();
-                    renderConcluded();
-                    updateBadges();
-                    renderPerformance();
-                    showNotification("Histórico limpo!", 'success');
-                }
-            });
+            
+            // Botões de exportação
+            document.getElementById("exportTicketsBtn").addEventListener("click", exportTickets);
+            document.getElementById("exportConcludedBtn").addEventListener("click", exportConcluded);
+            document.getElementById("exportPerformanceBtn").addEventListener("click", exportPerformance);
             
             document.querySelectorAll(".nav-tab").forEach(btn => {
                 btn.addEventListener("click", () => {
