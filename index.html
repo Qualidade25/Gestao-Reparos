@@ -117,7 +117,27 @@
             color: #059669;
         }
 
-        .reason-select {
+        .critical-badge-yes {
+            background: #dc2626;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .critical-badge-no {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .reason-select, .critical-select {
             width: 100%;
             padding: 0.25rem 0.5rem;
             border-radius: 0.5rem;
@@ -128,14 +148,50 @@
             transition: all 0.2s ease;
         }
 
-        .reason-select:hover {
+        .reason-select:hover, .critical-select:hover {
             border-color: #667eea;
         }
 
-        .reason-select:focus {
+        .reason-select:focus, .critical-select:focus {
             outline: none;
             ring: 2px solid #667eea;
             border-color: #667eea;
+        }
+
+        .complexity-badge-1 {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+            min-width: 40px;
+        }
+
+        .complexity-badge-2 {
+            background: #f59e0b;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+            min-width: 40px;
+        }
+
+        .complexity-badge-3 {
+            background: #ef4444;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+            min-width: 40px;
         }
 
         .progress-container {
@@ -200,6 +256,28 @@
         .history-item:hover {
             background: #f9fafb;
             transform: translateX(5px);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 180px;
+        }
+
+        .filter-select:hover {
+            border-color: #667eea;
         }
 
         input, select, textarea {
@@ -312,11 +390,22 @@
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
-                    <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-                        <i class="fas fa-user-tie text-gray-500 text-sm"></i>
-                        <select id="userSelect" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[200px]">
-                            <option value="">Todos os Responsáveis</option>
-                        </select>
+                    <div class="filter-group">
+                        <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+                            <i class="fas fa-user-tie text-gray-500 text-sm"></i>
+                            <select id="userSelect" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[180px]">
+                                <option value="">Todos os Responsáveis</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+                            <i class="fas fa-chart-line text-gray-500 text-sm"></i>
+                            <select id="complexityFilter" class="text-sm bg-transparent outline-none cursor-pointer text-gray-900 min-w-[150px]">
+                                <option value="">Todas Complexidades</option>
+                                <option value="1">Complexidade 1 (Baixa)</option>
+                                <option value="2">Complexidade 2 (Média)</option>
+                                <option value="3">Complexidade 3 (Alta)</option>
+                            </select>
+                        </div>
                     </div>
                     <div id="userBadge" class="hidden text-xs px-3 py-1.5 rounded-full font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white"></div>
                     <button id="clearAllDataBtn" class="btn-warning text-sm">
@@ -491,8 +580,10 @@
         let ticketStorage = {};
         let vehicleNotDeliveredReasons = {};
         let reasonHistory = {};
+        let criticalStatus = {}; // Armazena status crítico (Sim/Não)
         let uploadHistory = [];
         let currentResponsavel = null;
+        let currentComplexity = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
@@ -557,6 +648,8 @@
             "Outros"
         ];
 
+        const criticalOptions = ["Sim", "Não"];
+
         function getResponsavelAndEquipeByTecnico(tecnico) {
             if (!tecnico || tecnico === "-") return { responsavel: null, equipe: null };
             for (let [key, value] of tecnicoResponsavelMap.entries()) {
@@ -589,6 +682,9 @@
                 const storedReasonHistory = localStorage.getItem("reasonHistory");
                 if (storedReasonHistory) reasonHistory = JSON.parse(storedReasonHistory);
                 
+                const storedCriticalStatus = localStorage.getItem("criticalStatus");
+                if (storedCriticalStatus) criticalStatus = JSON.parse(storedCriticalStatus);
+                
                 const storedUploadHistory = localStorage.getItem("uploadHistory");
                 if (storedUploadHistory) uploadHistory = JSON.parse(storedUploadHistory);
             } catch(e) { console.error(e); }
@@ -600,6 +696,7 @@
             localStorage.setItem("vehicleTickets", JSON.stringify(ticketStorage));
             localStorage.setItem("vehicleNotDeliveredReasons", JSON.stringify(vehicleNotDeliveredReasons));
             localStorage.setItem("reasonHistory", JSON.stringify(reasonHistory));
+            localStorage.setItem("criticalStatus", JSON.stringify(criticalStatus));
             localStorage.setItem("uploadHistory", JSON.stringify(uploadHistory));
         }
 
@@ -675,6 +772,12 @@
             if (reason) showNotification(`Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`, 'success');
         }
 
+        function updateCriticalStatus(index, value) {
+            criticalStatus[index] = value;
+            saveToStorage();
+            showNotification(`Status Crítico alterado para: ${value}`, 'success');
+        }
+
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
@@ -700,6 +803,8 @@
                             <div class="details-item"><span class="details-label">Oficina:</span> ${row["Oficina"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Marca/Modelo:</span> ${row["Marca/Modelo"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Complexidade:</span> ${row["Complexidade"] || "-"}</div>
+                            <div class="details-item"><span class="details-label">Crítico:</span> ${row["Crítico"] || "-"}</div>
                             <div class="details-item"><span class="details-label">Data Conclusão:</span> ${row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao)}</div>
                         </div>
                     </div>
@@ -769,6 +874,7 @@
                 const oficinaIndex = 0;
                 const dataAtivacaoIndex = 20;
                 const marcaModeloIndex = 14;
+                const complexidadeIndex = 33; // Coluna AH (índice 33, pois A=0, AH=33)
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -780,6 +886,7 @@
                     
                     const tecnicoNome = tecnicoIndex >= 0 && row[tecnicoIndex] ? String(row[tecnicoIndex]) : "-";
                     const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
+                    const complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]) : "-";
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -789,6 +896,7 @@
                         "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
                         "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
                         "Data Aviso": formattedDate,
+                        "Complexidade": complexidade,
                         "_rawDate": rawDateValue,
                         "dataUpload": new Date().toISOString()
                     };
@@ -825,7 +933,8 @@
                 renderUploadHistory();
                 
                 document.getElementById("fileName").innerHTML = `Arquivo carregado: ${file.name}<br>
-                <span class="text-sm">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados</span>`;
+                <span class="text-sm">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>
+                📌 Coluna AH (Complexidade) importada: 1, 2 ou 3</span>`;
                 document.getElementById("uploadInfo").classList.remove("hidden");
                 
                 showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
@@ -871,7 +980,8 @@
             let ticketsHtml = `<p class="mb-3"><strong>Placa:</strong> ${row["Placa"] || "-"}</p>`;
             ticketsHtml += `<p class="mb-3 text-sm text-gray-600"><strong>Oficina:</strong> ${row["Oficina"] || "-"} | <strong>Marca/Modelo:</strong> ${row["Marca/Modelo"] || "-"}<br>
             <strong>Data Aviso:</strong> ${row["Data Aviso"] || "-"} | <strong>Técnico:</strong> ${row["Cons.Técnico"] || "-"}<br>
-            <strong>Responsável:</strong> ${row["Responsável"] || "-"} | <strong>Equipe:</strong> ${row["Equipe"] || "-"}</p>`;
+            <strong>Responsável:</strong> ${row["Responsável"] || "-"} | <strong>Equipe:</strong> ${row["Equipe"] || "-"}<br>
+            <strong>Complexidade:</strong> ${row["Complexidade"] || "-"}</p>`;
             
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
                 ticketsHtml += `<div class="mb-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
@@ -957,8 +1067,13 @@
             const conclusionTimestamp = new Date().toISOString();
             row.dataConclusao = conclusionTimestamp;
             row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
+            
             if (vehicleNotDeliveredReasons[index]) row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
             else row["Veículo não Entregue"] = "";
+            
+            if (criticalStatus[index]) row["Crítico"] = criticalStatus[index];
+            else row["Crítico"] = "Não";
+            
             if (reasonHistory[index] && reasonHistory[index].length > 0) row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
             if (ticketStorage[index] && ticketStorage[index].length > 0) {
                 row["Tickets"] = JSON.stringify(ticketStorage[index]);
@@ -976,6 +1091,7 @@
             delete ticketStorage[index];
             delete vehicleNotDeliveredReasons[index];
             delete reasonHistory[index];
+            delete criticalStatus[index];
             
             const newTicketStorage = {};
             Object.keys(ticketStorage).forEach(key => {
@@ -997,6 +1113,13 @@
                 newHistoryStorage[newKey] = reasonHistory[key];
             });
             reasonHistory = newHistoryStorage;
+            
+            const newCriticalStorage = {};
+            Object.keys(criticalStatus).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newCriticalStorage[newKey] = criticalStatus[key];
+            });
+            criticalStatus = newCriticalStorage;
             
             saveToStorage();
             renderTickets();
@@ -1022,6 +1145,7 @@
                 ticketStorage = {};
                 vehicleNotDeliveredReasons = {};
                 reasonHistory = {};
+                criticalStatus = {};
                 uploadHistory = [];
                 saveToStorage();
                 renderTickets();
@@ -1032,34 +1156,52 @@
             }
         }
 
+        function applyFilters() {
+            renderTickets();
+            renderConcluded();
+            updateBadges();
+            
+            // Update filter info text
+            const filterInfo = document.getElementById("filterInfo");
+            const filterText = document.getElementById("filterText");
+            let filterMessages = [];
+            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            
+            if (filterMessages.length > 0) {
+                filterInfo.classList.remove("hidden");
+                filterText.textContent = `Filtrando por: ${filterMessages.join(" | ")}`;
+            } else {
+                filterInfo.classList.add("hidden");
+            }
+        }
+
         function renderTickets() {
             const container = document.getElementById("ticketsList");
             const totalSpan = document.getElementById("ticketsTotalCount");
-            const filterInfo = document.getElementById("filterInfo");
-            const filterText = document.getElementById("filterText");
             
             let filteredData = excelData;
             if (currentResponsavel) {
-                filteredData = excelData.filter(row => row["Responsável"] === currentResponsavel);
-                filterInfo.classList.remove("hidden");
-                filterText.textContent = `Filtrando por responsável: ${currentResponsavel} | Total: ${filteredData.length} reparos`;
-            } else {
-                filterInfo.classList.add("hidden");
+                filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            }
+            if (currentComplexity) {
+                filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
             }
             
             totalSpan.textContent = filteredData.length;
             
             if (filteredData.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>Nenhum reparo em andamento${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p><p class="text-sm">Faça upload da base para começar</p></div>`;
+                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>Nenhum reparo em andamento</p><p class="text-sm">Faça upload da base para começar</p></div>`;
                 return;
             }
             
-            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Veículo não Entregue</th><th>Status</th><th>30 dd</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th></tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
                 const tickets = ticketStorage[originalIndex] || [];
                 const currentReason = vehicleNotDeliveredReasons[originalIndex] || "";
+                const currentCritical = criticalStatus[originalIndex] || "Não";
                 const status = tickets.length > 0 ? (tickets.some(t => t.status === "aberto") ? "Aberto" : "Em Andamento") : "Aguardando";
                 let statusClass = "status-open";
                 if (status === "Em Andamento") statusClass = "status-progress";
@@ -1069,13 +1211,35 @@
                 const progressColor = getProgressBarColor(daysDiff);
                 const displayText = daysDiff !== null ? `${daysDiff} / 30 dias` : "Data inválida";
                 
+                const complexityClass = row["Complexidade"] === "1" ? "complexity-badge-1" : (row["Complexidade"] === "2" ? "complexity-badge-2" : (row["Complexidade"] === "3" ? "complexity-badge-3" : ""));
+                
                 let optionsHtml = `<option value="">Selecione...</option>`;
                 deliveryReasonOptions.forEach(option => {
                     const selected = currentReason === option ? 'selected' : '';
                     optionsHtml += `<option value="${option}" ${selected}>${option}</option>`;
                 });
                 
-                html += `<tr><td><strong>${row["Placa"] || "-"}</strong></td><td>${row["Cons.Técnico"] || "-"}</td><td>${row["Responsável"] || "-"}</td><td>${row["Equipe"] || "-"}</td><td>${row["Oficina"] || "-"}</td><td>${row["Marca/Modelo"] || "-"}</td><td>${row["Data Aviso"] || "-"}</td><td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td><td><span class="status-badge ${statusClass}">${status}</span></td><td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td><td><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td></tr>`;
+                let criticalOptionsHtml = `<option value="">Selecione...</option>`;
+                criticalOptions.forEach(option => {
+                    const selected = currentCritical === option ? 'selected' : '';
+                    criticalOptionsHtml += `<option value="${option}" ${selected}>${option}</option>`;
+                });
+                
+                html += `<tr>
+                    <td><strong>${row["Placa"] || "-"}</strong></td>
+                    <td>${row["Cons.Técnico"] || "-"}</td>
+                    <td>${row["Responsável"] || "-"}</td>
+                    <td>${row["Equipe"] || "-"}</td>
+                    <td>${row["Oficina"] || "-"}</td>
+                    <td>${row["Marca/Modelo"] || "-"}</td>
+                    <td>${row["Data Aviso"] || "-"}</td>
+                    <td>${row["Complexidade"] !== "-" ? `<span class="${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
+                    <td><select class="reason-select" onchange="updateDeliveryReason(${originalIndex}, this.value)">${optionsHtml}</select></td>
+                    <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    <td><div class="progress-container"><div class="progress-bar ${progressColor}" style="width: ${progressPercentage}%;"><span class="progress-text">${displayText}</span></div></div></td>
+                    <td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>
+                    <td><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> Tickets (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td>
+                </tr>`;
             });
             
             html += `</tbody></table>`;
@@ -1089,26 +1253,52 @@
             
             let filteredData = concludedData;
             if (currentResponsavel) {
-                filteredData = concludedData.filter(item => item["Responsável"] === currentResponsavel);
+                filteredData = filteredData.filter(item => item["Responsável"] === currentResponsavel);
+            }
+            if (currentComplexity) {
+                filteredData = filteredData.filter(item => item["Complexidade"] === currentComplexity);
+            }
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i><p>Nenhum reparo concluído</p></div>`;
+                return;
+            }
+            
+            let filterMessages = [];
+            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            
+            if (filterMessages.length > 0) {
                 concludedFilterInfo.classList.remove("hidden");
-                concludedFilterText.textContent = `Filtrando por responsável: ${currentResponsavel} | Total: ${filteredData.length} reparos concluídos`;
+                concludedFilterText.textContent = `Filtrando por: ${filterMessages.join(" | ")}`;
             } else {
                 concludedFilterInfo.classList.add("hidden");
             }
             
-            if (filteredData.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-500"><i class="fas fa-check-circle text-4xl mb-3 opacity-50"></i><p>Nenhum reparo concluído${currentResponsavel ? ` para o responsável ${currentResponsavel}` : ''}</p></div>`;
-                return;
-            }
-            
-            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Veículo não Entregue</th><th>Data Conclusão</th><th>Detalhes</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<table class="min-w-full"><thead><tr><th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Marca/Modelo</th><th>Data Aviso</th><th>Complexidade</th><th>Veículo não Entregue</th><th>Crítico</th><th>Data Conclusão</th><th>Detalhes</th><th>Ações</th></tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = concludedData.findIndex((r, i) => r === row);
                 const conclusaoDate = row.dataConclusaoFormatada || formatTimestamp(row.dataConclusao);
                 const hasTickets = row["Quantidade de Tickets"] > 0;
+                const complexityClass = row["Complexidade"] === "1" ? "complexity-badge-1" : (row["Complexidade"] === "2" ? "complexity-badge-2" : (row["Complexidade"] === "3" ? "complexity-badge-3" : ""));
+                const criticalClass = row["Crítico"] === "Sim" ? "critical-badge-yes" : (row["Crítico"] === "Não" ? "critical-badge-no" : "");
                 
-                html += `<tr><td><strong>${row["Placa"] || "-"}</strong></td><td>${row["Cons.Técnico"] || "-"}</td><td>${row["Responsável"] || "-"}</td><td>${row["Equipe"] || "-"}</td><td>${row["Oficina"] || "-"}</td><td>${row["Marca/Modelo"] || "-"}</td><td>${row["Data Aviso"] || "-"}</td><td>${row["Veículo não Entregue"] || "-"}</td><td>${conclusaoDate}</td><td><button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Ver Detalhes</button>${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}</td><td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i> Remover</button></td></tr>`;
+                html += `<tr>
+                    <td><strong>${row["Placa"] || "-"}</strong></td>
+                    <td>${row["Cons.Técnico"] || "-"}</td>
+                    <td>${row["Responsável"] || "-"}</td>
+                    <td>${row["Equipe"] || "-"}</td>
+                    <td>${row["Oficina"] || "-"}</td>
+                    <td>${row["Marca/Modelo"] || "-"}</td>
+                    <td>${row["Data Aviso"] || "-"}</td>
+                    <td>${row["Complexidade"] !== "-" && row["Complexidade"] ? `<span class="${complexityClass}">${row["Complexidade"]}</span>` : "-"}</td>
+                    <td>${row["Veículo não Entregue"] || "-"}</td>
+                    <td>${row["Crítico"] ? `<span class="${criticalClass}">${row["Crítico"]}</span>` : "-"}</td>
+                    <td>${conclusaoDate}</td>
+                    <td><button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showConcludedDetails(${originalIndex})"><i class="fas fa-info-circle"></i> Ver Detalhes</button>${hasTickets ? '<span class="ml-2 text-xs text-purple-600"><i class="fas fa-ticket-alt"></i> ' + row["Quantidade de Tickets"] + '</span>' : ''}</td>
+                    <td><button class="btn-secondary text-xs py-1 px-2" onclick="deleteConcluded(${originalIndex})"><i class="fas fa-trash-alt"></i> Remover</button></td>
+                </tr>`;
             });
             
             html += `</tbody></table>`;
@@ -1128,17 +1318,28 @@
                 currentTeam = null;
                 document.getElementById("userBadge").classList.add("hidden");
             }
-            renderTickets();
-            renderConcluded();
-            updateBadges();
+            applyFilters();
+        }
+
+        function handleComplexityChange() {
+            const select = document.getElementById("complexityFilter");
+            currentComplexity = select.value || null;
+            applyFilters();
         }
 
         function updateBadges() {
-            const filteredTickets = currentResponsavel ? excelData.filter(row => row["Responsável"] === currentResponsavel) : excelData;
-            const filteredConcluded = currentResponsavel ? concludedData.filter(item => item["Responsável"] === currentResponsavel) : concludedData;
+            let filteredData = excelData;
+            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            
+            let filteredConcluded = concludedData;
+            if (currentResponsavel) filteredConcluded = filteredConcluded.filter(item => item["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredConcluded = filteredConcluded.filter(item => item["Complexidade"] === currentComplexity);
+            
             const ticketsBadge = document.getElementById("ticketsBadge");
             const concludedBadge = document.getElementById("concludedBadge");
-            if (filteredTickets.length > 0) { ticketsBadge.textContent = filteredTickets.length; ticketsBadge.classList.remove("hidden"); }
+            
+            if (filteredData.length > 0) { ticketsBadge.textContent = filteredData.length; ticketsBadge.classList.remove("hidden"); }
             else { ticketsBadge.classList.add("hidden"); }
             if (filteredConcluded.length > 0) { concludedBadge.textContent = filteredConcluded.length; concludedBadge.classList.remove("hidden"); }
             else { concludedBadge.classList.add("hidden"); }
@@ -1155,6 +1356,9 @@
                 userSelect.appendChild(option);
             });
             userSelect.addEventListener("change", handleResponsavelChange);
+            
+            const complexityFilter = document.getElementById("complexityFilter");
+            complexityFilter.addEventListener("change", handleComplexityChange);
             
             document.getElementById("clearAllDataBtn").addEventListener("click", clearAllData);
             
