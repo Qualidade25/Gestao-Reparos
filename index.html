@@ -467,6 +467,32 @@
             gap: 0.5rem;
             align-items: center;
         }
+
+        .ticket-item {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .ticket-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .ticket-status-aberto {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .ticket-status-andamento {
+            background: #fef3c7;
+            color: #d97706;
+        }
     </style>
 </head>
 <body>
@@ -758,7 +784,7 @@
             <div class="flex justify-between items-center mb-5">
                 <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <i class="fas fa-ticket-alt text-purple-600"></i>
-                    <span>Gerenciar Ticket</span>
+                    <span>Gerenciar Tickets</span>
                 </h3>
                 <button class="closeModal text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-xl"></i>
@@ -784,24 +810,33 @@
     </div>
 
     <script>
+        // ============================================
+        // DATA STORES - PERSISTENTES
+        // ============================================
         let excelData = [];
         let concludedData = [];
-        let ticketStorage = {};
+        let ticketStorage = {};           // { index: [tickets] }
         let vehicleNotDeliveredReasons = {};
         let reasonHistory = {};
         let criticalStatus = {};
         let statusAprovacaoStorage = {};
         let uploadHistory = [];
+        
+        // Filtros
         let currentResponsavel = null;
         let currentComplexity = null;
         let currentStatusAprovacao = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
+        // Gráficos
         let performanceChart = null;
         let statusChart = null;
         let dailyChart = null;
 
+        // ============================================
+        // CONFIGURAÇÕES
+        // ============================================
         const tecnicoResponsavelMap = new Map([
             ["Alexandre Stassuk Munhoes", { responsavel: "Michelle", equipe: "LayOut time-2" }],
             ["IGOR PILATI JUNG", { responsavel: "Ana Cristina", equipe: "LayOut time-4" }],
@@ -864,6 +899,9 @@
 
         const criticalOptions = ["Sim", "Não"];
 
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
         function getResponsavelAndEquipeByTecnico(tecnico) {
             if (!tecnico || tecnico === "-") return { responsavel: null, equipe: null };
             for (let [key, value] of tecnicoResponsavelMap.entries()) {
@@ -876,21 +914,31 @@
             try {
                 const storedData = localStorage.getItem("excelData");
                 if (storedData) excelData = JSON.parse(storedData);
+                
                 const storedConcluded = localStorage.getItem("concludedRepairs");
                 if (storedConcluded) concludedData = JSON.parse(storedConcluded);
+                
                 const storedTickets = localStorage.getItem("vehicleTickets");
                 if (storedTickets) ticketStorage = JSON.parse(storedTickets);
+                
                 const storedReasons = localStorage.getItem("vehicleNotDeliveredReasons");
                 if (storedReasons) vehicleNotDeliveredReasons = JSON.parse(storedReasons);
+                
                 const storedReasonHistory = localStorage.getItem("reasonHistory");
                 if (storedReasonHistory) reasonHistory = JSON.parse(storedReasonHistory);
+                
                 const storedCriticalStatus = localStorage.getItem("criticalStatus");
                 if (storedCriticalStatus) criticalStatus = JSON.parse(storedCriticalStatus);
+                
                 const storedStatusAprovacao = localStorage.getItem("statusAprovacao");
                 if (storedStatusAprovacao) statusAprovacaoStorage = JSON.parse(storedStatusAprovacao);
+                
                 const storedUploadHistory = localStorage.getItem("uploadHistory");
                 if (storedUploadHistory) uploadHistory = JSON.parse(storedUploadHistory);
-            } catch(e) { console.error(e); }
+                
+                console.log("✅ Dados carregados do localStorage");
+                console.log("📊 Tickets armazenados:", Object.keys(ticketStorage).length);
+            } catch(e) { console.error("Erro ao carregar dados:", e); }
         }
 
         function saveToStorage() {
@@ -902,128 +950,39 @@
             localStorage.setItem("criticalStatus", JSON.stringify(criticalStatus));
             localStorage.setItem("statusAprovacao", JSON.stringify(statusAprovacaoStorage));
             localStorage.setItem("uploadHistory", JSON.stringify(uploadHistory));
-        }
-
-        function exportToExcel(data, filename, sheetName) {
-            if (!data || data.length === 0) {
-                alert("Não há dados para exportar!");
-                return;
-            }
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            XLSX.writeFile(wb, `${filename}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
-            showNotification(`Exportação concluída: ${filename}`, 'success');
-        }
-
-        function exportTickets() {
-            let filteredData = [...excelData];
-            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
-            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
             
-            const exportData = filteredData.map(row => {
-                const idx = excelData.findIndex(r => r === row);
-                return {
-                    "Placa": row["Placa"],
-                    "Técnico": row["Cons.Técnico"],
-                    "Responsável": row["Responsável"],
-                    "Equipe": row["Equipe"],
-                    "Oficina": row["Oficina"],
-                    "Marca/Modelo": row["Marca/Modelo"],
-                    "Data Aviso": row["Data Aviso"],
-                    "Complexidade": row["Complexidade"],
-                    "Status Aprovação": statusAprovacaoStorage[idx] || "-",
-                    "Motivo Não Entrega": vehicleNotDeliveredReasons[idx] || "",
-                    "Crítico": criticalStatus[idx] || "Não"
-                };
+            console.log("💾 Dados salvos no localStorage");
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('pt-BR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
             });
-            exportToExcel(exportData, "acompanhamento_reparos", "Em Andamento");
-        }
-
-        function exportConcluded() {
-            let filteredData = [...concludedData];
-            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
-            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            
-            const exportData = filteredData.map(row => ({
-                "Placa": row["Placa"],
-                "Técnico": row["Cons.Técnico"],
-                "Responsável": row["Responsável"],
-                "Equipe": row["Equipe"],
-                "Oficina": row["Oficina"],
-                "Marca/Modelo": row["Marca/Modelo"],
-                "Data Aviso": row["Data Aviso"],
-                "Complexidade": row["Complexidade"],
-                "Status Aprovação": row["Status Aprovação"] || "-",
-                "Motivo Não Entrega": row["Veículo não Entregue"] || "",
-                "Crítico": row["Crítico"] || "Não",
-                "Data Conclusão": row.dataConclusaoFormatada || "",
-                "Quantidade Tickets": row["Quantidade de Tickets"] || 0
-            }));
-            exportToExcel(exportData, "reparos_concluidos", "Concluídos");
-        }
-
-        function exportPerformance() {
-            const performanceData = [];
-            for (const resp of responsaveisList) {
-                const andamento = excelData.filter(item => item["Responsável"] === resp.value).length;
-                const concluidos = concludedData.filter(item => item["Responsável"] === resp.value).length;
-                const total = andamento + concluidos;
-                const taxa = total > 0 ? ((concluidos / total) * 100).toFixed(1) : 0;
-                performanceData.push({ "Responsável": resp.label, "Em Andamento": andamento, "Concluídos": concluidos, "Total": total, "Taxa de Conclusão": `${taxa}%` });
-            }
-            
-            const dailyStats = {};
-            concludedData.forEach(item => {
-                if (item.dataConclusao) {
-                    const date = new Date(item.dataConclusao).toLocaleDateString('pt-BR');
-                    dailyStats[date] = (dailyStats[date] || 0) + 1;
-                }
-            });
-            
-            const dailyData = Object.entries(dailyStats).map(([data, quantidade]) => ({ "Data": data, "Conclusões": quantidade }))
-                .sort((a, b) => new Date(a.Data.split('/').reverse().join('-')) - new Date(b.Data.split('/').reverse().join('-')));
-            
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(performanceData), "Performance por Responsável");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyData), "Produtividade Diária");
-            XLSX.writeFile(wb, `relatorio_performance_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
-            showNotification("Relatório de performance exportado!", 'success');
         }
 
         function formatDate(dateValue) {
             if (!dateValue || dateValue === "-" || dateValue === "") return null;
-            
             if (typeof dateValue === 'number' && dateValue > 40000) {
-                const date = new Date((dateValue - 25569) * 86400 * 1000);
-                return date;
+                return new Date((dateValue - 25569) * 86400 * 1000);
             }
-            
             if (typeof dateValue === 'string') {
                 let date = new Date(dateValue);
                 if (!isNaN(date.getTime())) return date;
-                
                 const parts = dateValue.split('/');
                 if (parts.length === 3) {
-                    const day = parseInt(parts[0]);
-                    const month = parseInt(parts[1]) - 1;
-                    const year = parseInt(parts[2]);
-                    const testDate = new Date(year, month, day);
-                    if (testDate.getDate() === day && testDate.getMonth() === month && testDate.getFullYear() === year) {
-                        return testDate;
-                    }
+                    const testDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    if (testDate.getDate() === parseInt(parts[0])) return testDate;
                 }
-                
                 const parts2 = dateValue.split('-');
                 if (parts2.length === 3) {
-                    const year = parseInt(parts2[0]);
-                    const month = parseInt(parts2[1]) - 1;
-                    const day = parseInt(parts2[2]);
-                    const testDate = new Date(year, month, day);
-                    if (testDate.getDate() === day && testDate.getMonth() === month && testDate.getFullYear() === year) {
-                        return testDate;
-                    }
+                    const testDate = new Date(parseInt(parts2[0]), parseInt(parts2[1]) - 1, parseInt(parts2[2]));
+                    if (testDate.getDate() === parseInt(parts2[2])) return testDate;
                 }
             }
             return null;
@@ -1061,16 +1020,179 @@
             return Math.min((days / 30) * 100, 100);
         }
 
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-5 right-5 z-50 p-4 rounded-xl shadow-2xl ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
+            notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
         }
 
+        // ============================================
+        // FUNÇÕES DE TICKETS - RECONSTRUÍDAS
+        // ============================================
+        window.openTicketModal = function(index) {
+            currentEditIndex = index;
+            const row = excelData[index];
+            const tickets = ticketStorage[index] || [];
+            
+            const modal = document.getElementById("ticketModal");
+            const modalBody = document.getElementById("modalBody");
+            
+            let ticketsHtml = `
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4">
+                        <h4 class="font-bold text-gray-800 mb-2">📋 Informações do Veículo</h4>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div><span class="font-semibold">Placa:</span> ${row["Placa"] || "-"}</div>
+                            <div><span class="font-semibold">Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
+                            <div><span class="font-semibold">Responsável:</span> ${row["Responsável"] || "-"}</div>
+                            <div><span class="font-semibold">Oficina:</span> ${row["Oficina"] || "-"}</div>
+                            <div><span class="font-semibold">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>
+                            <div><span class="font-semibold">Complex:</span> ${row["Complexidade"] || "-"}</div>
+                        </div>
+                    </div>
+            `;
+            
+            // Histórico de motivos
+            if (reasonHistory[index] && reasonHistory[index].length > 0) {
+                ticketsHtml += `
+                    <div class="bg-blue-50 rounded-xl p-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">📜 Histórico de Motivos</h4>
+                        <div class="space-y-2 max-h-40 overflow-y-auto">
+                `;
+                reasonHistory[index].forEach(entry => {
+                    ticketsHtml += `<div class="bg-white rounded-lg p-2 text-sm"><span class="font-medium">${entry.reason}</span> <span class="text-gray-500 text-xs">${entry.formattedTime}</span></div>`;
+                });
+                ticketsHtml += `</div></div>`;
+            }
+            
+            // Tickets existentes
+            if (tickets.length > 0) {
+                ticketsHtml += `
+                    <div class="bg-purple-50 rounded-xl p-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">🎫 Tickets (${tickets.length})</h4>
+                        <div class="space-y-3 max-h-60 overflow-y-auto">
+                `;
+                tickets.forEach((ticket, i) => {
+                    const statusClass = ticket.status === "aberto" ? "ticket-status-aberto" : "ticket-status-andamento";
+                    const statusText = ticket.status === "aberto" ? "Aberto" : "Em Andamento";
+                    ticketsHtml += `
+                        <div class="ticket-item">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-bold text-purple-600">#${ticket.numero}</span>
+                                        <span class="ticket-status ${statusClass}">${statusText}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-700">${ticket.descricao}</p>
+                                    <p class="text-xs text-gray-400 mt-2">
+                                        <i class="far fa-clock mr-1"></i>${ticket.formattedTime || formatTimestamp(ticket.data)}
+                                    </p>
+                                </div>
+                                <button onclick="removeTicket(${i})" class="text-red-500 hover:text-red-700 ml-2">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                ticketsHtml += `</div></div>`;
+            } else {
+                ticketsHtml += `
+                    <div class="bg-gray-50 rounded-xl p-4 text-center text-gray-500">
+                        <i class="fas fa-ticket-alt text-2xl mb-2 opacity-50"></i>
+                        <p>Nenhum ticket registrado</p>
+                    </div>
+                `;
+            }
+            
+            // Formulário para novo ticket
+            ticketsHtml += `
+                <div class="border-t pt-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">➕ Adicionar Novo Ticket</h4>
+                    <textarea id="ticketDesc" class="w-full border border-gray-300 rounded-xl p-3 text-sm" rows="3" placeholder="Descreva o problema ou serviço..."></textarea>
+                    <div class="flex gap-3 mt-3">
+                        <select id="ticketStatus" class="border border-gray-300 rounded-xl p-2 flex-1 text-sm">
+                            <option value="aberto">🟢 Aberto</option>
+                            <option value="andamento">🟡 Em Andamento</option>
+                        </select>
+                        <button onclick="addTicket()" class="btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+            
+            modalBody.innerHTML = ticketsHtml;
+            modal.classList.add("active");
+        };
+
+        window.addTicket = function() {
+            const desc = document.getElementById("ticketDesc").value;
+            const status = document.getElementById("ticketStatus").value;
+            
+            if (!desc.trim()) {
+                showNotification("Por favor, descreva o ticket", "error");
+                return;
+            }
+            
+            const timestamp = new Date().toISOString();
+            const tickets = ticketStorage[currentEditIndex] || [];
+            const newTicket = {
+                numero: tickets.length + 1,
+                descricao: desc,
+                status: status,
+                data: timestamp,
+                formattedTime: formatTimestamp(timestamp)
+            };
+            
+            tickets.push(newTicket);
+            ticketStorage[currentEditIndex] = tickets;
+            saveToStorage();
+            
+            // Fecha o modal e reabre para atualizar
+            document.getElementById("ticketModal").classList.remove("active");
+            openTicketModal(currentEditIndex);
+            renderTickets();
+            
+            showNotification(`✅ Ticket #${newTicket.numero} adicionado com sucesso!`, 'success');
+        };
+
+        window.removeTicket = function(ticketIndex) {
+            if (!confirm("Remover este ticket permanentemente?")) return;
+            
+            const tickets = ticketStorage[currentEditIndex];
+            tickets.splice(ticketIndex, 1);
+            
+            if (tickets.length === 0) {
+                delete ticketStorage[currentEditIndex];
+            } else {
+                // Re-number tickets
+                tickets.forEach((t, i) => t.numero = i + 1);
+                ticketStorage[currentEditIndex] = tickets;
+            }
+            
+            saveToStorage();
+            
+            // Fecha o modal e reabre para atualizar
+            document.getElementById("ticketModal").classList.remove("active");
+            openTicketModal(currentEditIndex);
+            renderTickets();
+            
+            showNotification(`🗑️ Ticket removido!`, 'success');
+        };
+
+        // ============================================
+        // FUNÇÕES DE ATUALIZAÇÃO
+        // ============================================
         function updateDeliveryReason(index, reason) {
             const timestamp = new Date().toISOString();
             vehicleNotDeliveredReasons[index] = reason;
             if (!reasonHistory[index]) reasonHistory[index] = [];
-            if (reason) reasonHistory[index].push({ reason, timestamp, formattedTime: formatTimestamp(timestamp) });
+            if (reason) {
+                reasonHistory[index].push({ reason, timestamp, formattedTime: formatTimestamp(timestamp) });
+            }
             saveToStorage();
             if (reason) showNotification(`Motivo "${reason}" registrado`, 'success');
         }
@@ -1081,12 +1203,194 @@
             showNotification(`Status Crítico alterado para: ${value}`, 'success');
         }
 
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `fixed bottom-5 right-5 z-50 p-4 rounded-xl shadow-2xl ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} fade-in`;
-            notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
-            document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
+        // ============================================
+        // PROCESSAR EXCEL
+        // ============================================
+        function processExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                if (!rawData || rawData.length < 2) {
+                    alert("Arquivo vazio ou formato inválido");
+                    return;
+                }
+                
+                const headers = rawData[0];
+                const findColumnIndex = (possibleNames) => {
+                    for (let i = 0; i < headers.length; i++) {
+                        const header = String(headers[i] || "").toLowerCase().trim();
+                        if (possibleNames.some(name => header === name.toLowerCase())) return i;
+                    }
+                    return -1;
+                };
+                
+                const placaIndex = findColumnIndex(["Placa", "placa"]);
+                const tecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
+                const oficinaIndex = 0;
+                const dataAtivacaoIndex = 20;
+                const marcaModeloIndex = 14;
+                const complexidadeIndex = 33;
+                const statusAprovacaoIndex = 21;
+                
+                const novosDados = [];
+                for (let i = 1; i < rawData.length; i++) {
+                    const row = rawData[i];
+                    if (!row || row.length === 0) continue;
+                    
+                    let rawDateValue = (dataAtivacaoIndex < row.length && row[dataAtivacaoIndex]) ? row[dataAtivacaoIndex] : "-";
+                    let formattedDate = formatDateDisplay(rawDateValue);
+                    
+                    const tecnicoNome = tecnicoIndex >= 0 && row[tecnicoIndex] ? String(row[tecnicoIndex]) : "-";
+                    const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
+                    let complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]).trim() : "-";
+                    let statusAprovacao = (statusAprovacaoIndex < row.length && row[statusAprovacaoIndex]) ? String(row[statusAprovacaoIndex]) : "-";
+                    
+                    if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") complexidade = "-";
+                    if (statusAprovacao === "-" || statusAprovacao === "" || statusAprovacao === "undefined") statusAprovacao = "-";
+                    
+                    const item = {
+                        "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
+                        "Cons.Técnico": tecnicoNome,
+                        "Responsável": responsavelInfo.responsavel || "-",
+                        "Equipe": responsavelInfo.equipe || "-",
+                        "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
+                        "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
+                        "Data Aviso": formattedDate,
+                        "Complexidade": complexidade,
+                        "Status Aprovação": statusAprovacao,
+                        "_rawDate": rawDateValue,
+                        "dataUpload": new Date().toISOString()
+                    };
+                    
+                    if (item.Placa !== "-") novosDados.push(item);
+                }
+                
+                const placasExistentes = new Set(excelData.map(item => item.Placa));
+                let duplicados = 0, adicionados = 0;
+                
+                for (const novo of novosDados) {
+                    if (!placasExistentes.has(novo.Placa)) {
+                        const novoIndex = excelData.length;
+                        excelData.push(novo);
+                        if (novo["Status Aprovação"] !== "-") {
+                            statusAprovacaoStorage[novoIndex] = novo["Status Aprovação"];
+                        }
+                        adicionados++;
+                    } else {
+                        duplicados++;
+                    }
+                }
+                
+                const uploadRecord = {
+                    nome: file.name,
+                    data: new Date().toISOString(),
+                    dataFormatada: formatTimestamp(new Date().toISOString()),
+                    totalRegistros: novosDados.length,
+                    registrosAdicionados: adicionados,
+                    registrosDuplicados: duplicados
+                };
+                uploadHistory.unshift(uploadRecord);
+                
+                saveToStorage();
+                renderUploadHistory();
+                
+                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados</span>`;
+                document.getElementById("uploadInfo").classList.remove("hidden");
+                showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderUploadHistory() {
+            const container = document.getElementById("uploadHistoryList");
+            if (!uploadHistory.length) {
+                container.innerHTML = `<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>Nenhum upload realizado ainda</div>`;
+                return;
+            }
+            let html = `<div class="space-y-3">`;
+            uploadHistory.forEach((upload) => {
+                html += `<div class="bg-gray-50 rounded-xl p-4 border border-gray-100"><p class="font-semibold">📄 ${upload.nome}</p><p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p><div class="flex gap-4 mt-2 text-xs"><span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}</div></div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // RENDERIZAÇÃO DAS TABELAS
+        // ============================================
+        function concludeRepair(index) {
+            const row = { ...excelData[index] };
+            const conclusionTimestamp = new Date().toISOString();
+            row.dataConclusao = conclusionTimestamp;
+            row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
+            row["Status Aprovação"] = statusAprovacaoStorage[index] || row["Status Aprovação"] || "-";
+            
+            if (vehicleNotDeliveredReasons[index]) row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
+            else row["Veículo não Entregue"] = "";
+            
+            if (criticalStatus[index]) row["Crítico"] = criticalStatus[index];
+            else row["Crítico"] = "Não";
+            
+            if (reasonHistory[index] && reasonHistory[index].length > 0) row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
+            if (ticketStorage[index] && ticketStorage[index].length > 0) {
+                row["Tickets"] = JSON.stringify(ticketStorage[index]);
+                row["Quantidade de Tickets"] = ticketStorage[index].length;
+            } else row["Quantidade de Tickets"] = 0;
+            
+            concludedData.push(row);
+            excelData.splice(index, 1);
+            delete ticketStorage[index];
+            delete vehicleNotDeliveredReasons[index];
+            delete reasonHistory[index];
+            delete criticalStatus[index];
+            delete statusAprovacaoStorage[index];
+            
+            // Re-index
+            const newTicketStorage = {};
+            Object.keys(ticketStorage).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newTicketStorage[newKey] = ticketStorage[key];
+            });
+            ticketStorage = newTicketStorage;
+            
+            const newReasonsStorage = {};
+            Object.keys(vehicleNotDeliveredReasons).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newReasonsStorage[newKey] = vehicleNotDeliveredReasons[key];
+            });
+            vehicleNotDeliveredReasons = newReasonsStorage;
+            
+            const newHistoryStorage = {};
+            Object.keys(reasonHistory).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newHistoryStorage[newKey] = reasonHistory[key];
+            });
+            reasonHistory = newHistoryStorage;
+            
+            const newCriticalStorage = {};
+            Object.keys(criticalStatus).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newCriticalStorage[newKey] = criticalStatus[key];
+            });
+            criticalStatus = newCriticalStorage;
+            
+            const newStatusAprovStorage = {};
+            Object.keys(statusAprovacaoStorage).forEach(key => {
+                const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
+                newStatusAprovStorage[newKey] = statusAprovacaoStorage[key];
+            });
+            statusAprovacaoStorage = newStatusAprovStorage;
+            
+            saveToStorage();
+            renderTickets();
+            renderConcluded();
+            updateBadges();
+            if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
+            showNotification(`✅ Reparo da placa ${row["Placa"]} concluído!`, 'success');
         }
 
         function showConcludedDetails(index) {
@@ -1125,236 +1429,6 @@
             detailsHtml += `</div>`;
             modalBody.innerHTML = detailsHtml;
             modal.classList.add("active");
-        }
-
-        function processExcelFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                
-                if (!rawData || rawData.length < 2) {
-                    alert("Arquivo vazio ou formato inválido");
-                    return;
-                }
-                
-                const headers = rawData[0];
-                const findColumnIndex = (possibleNames) => {
-                    for (let i = 0; i < headers.length; i++) {
-                        const header = String(headers[i] || "").toLowerCase().trim();
-                        if (possibleNames.some(name => header === name.toLowerCase())) return i;
-                    }
-                    return -1;
-                };
-                
-                const placaIndex = findColumnIndex(["Placa", "placa"]);
-                const tecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
-                const oficinaIndex = 0;
-                const dataAtivacaoIndex = 20;
-                const marcaModeloIndex = 14;
-                const complexidadeIndex = 33;
-                const statusAprovacaoIndex = 21;
-                
-                console.log("🔍 Processando arquivo Excel...");
-                console.log("Coluna V (Status Aprovação) - Índice:", statusAprovacaoIndex);
-                
-                const novosDados = [];
-                for (let i = 1; i < rawData.length; i++) {
-                    const row = rawData[i];
-                    if (!row || row.length === 0) continue;
-                    
-                    let rawDateValue = (dataAtivacaoIndex < row.length && row[dataAtivacaoIndex]) ? row[dataAtivacaoIndex] : "-";
-                    let formattedDate = formatDateDisplay(rawDateValue);
-                    
-                    const tecnicoNome = tecnicoIndex >= 0 && row[tecnicoIndex] ? String(row[tecnicoIndex]) : "-";
-                    const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
-                    let complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]).trim() : "-";
-                    let statusAprovacao = (statusAprovacaoIndex < row.length && row[statusAprovacaoIndex]) ? String(row[statusAprovacaoIndex]) : "-";
-                    
-                    if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") complexidade = "-";
-                    if (statusAprovacao === "-" || statusAprovacao === "" || statusAprovacao === "undefined") statusAprovacao = "-";
-                    
-                    console.log(`Linha ${i}: Placa=${row[placaIndex]}, Status Aprovação (Coluna V)=${statusAprovacao}`);
-                    
-                    const item = {
-                        "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
-                        "Cons.Técnico": tecnicoNome,
-                        "Responsável": responsavelInfo.responsavel || "-",
-                        "Equipe": responsavelInfo.equipe || "-",
-                        "Oficina": oficinaIndex < row.length && row[oficinaIndex] ? String(row[oficinaIndex]) : "-",
-                        "Marca/Modelo": marcaModeloIndex < row.length && row[marcaModeloIndex] ? String(row[marcaModeloIndex]) : "-",
-                        "Data Aviso": formattedDate,
-                        "Complexidade": complexidade,
-                        "Status Aprovação": statusAprovacao,
-                        "_rawDate": rawDateValue,
-                        "dataUpload": new Date().toISOString()
-                    };
-                    
-                    if (item.Placa !== "-") novosDados.push(item);
-                }
-                
-                const placasExistentes = new Set(excelData.map(item => item.Placa));
-                let duplicados = 0, adicionados = 0;
-                
-                for (const novo of novosDados) {
-                    if (!placasExistentes.has(novo.Placa)) {
-                        const novoIndex = excelData.length;
-                        excelData.push(novo);
-                        if (novo["Status Aprovação"] !== "-") {
-                            statusAprovacaoStorage[novoIndex] = novo["Status Aprovação"];
-                            console.log(`✅ Status Aprovação armazenado para ${novo.Placa}: ${novo["Status Aprovação"]}`);
-                        }
-                        adicionados++;
-                    } else {
-                        duplicados++;
-                    }
-                }
-                
-                const uploadRecord = {
-                    nome: file.name,
-                    data: new Date().toISOString(),
-                    dataFormatada: formatTimestamp(new Date().toISOString()),
-                    totalRegistros: novosDados.length,
-                    registrosAdicionados: adicionados,
-                    registrosDuplicados: duplicados
-                };
-                uploadHistory.unshift(uploadRecord);
-                
-                saveToStorage();
-                renderUploadHistory();
-                
-                document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle mr-2"></i>Arquivo carregado: ${file.name}<br><span class="text-sm block mt-2">📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>📌 Datas convertidas para formato BR (dd/mm/aaaa)<br>📌 Status Aprovação importado da Coluna V (Status Chamado)</span>`;
-                document.getElementById("uploadInfo").classList.remove("hidden");
-                showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function renderUploadHistory() {
-            const container = document.getElementById("uploadHistoryList");
-            if (!uploadHistory.length) {
-                container.innerHTML = `<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>Nenhum upload realizado ainda</div>`;
-                return;
-            }
-            let html = `<div class="space-y-3">`;
-            uploadHistory.forEach((upload) => {
-                html += `<div class="bg-gray-50 rounded-xl p-4 border border-gray-100"><p class="font-semibold">📄 ${upload.nome}</p><p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p><div class="flex gap-4 mt-2 text-xs"><span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}</div></div>`;
-            });
-            html += `</div>`;
-            container.innerHTML = html;
-        }
-
-        function openTicketModal(index) {
-            currentEditIndex = index;
-            const row = excelData[index];
-            const tickets = ticketStorage[index] || [];
-            const modal = document.getElementById("ticketModal");
-            const modalBody = document.getElementById("modalBody");
-            
-            let ticketsHtml = `<div class="space-y-4"><div class="bg-gray-50 rounded-lg p-4"><p class="font-semibold">🚗 Placa: ${row["Placa"] || "-"}</p>`;
-            ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Modelo: ${row["Marca/Modelo"] || "-"}<br>`;
-            ticketsHtml += `📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>`;
-            ticketsHtml += `👤 Responsável: ${row["Responsável"] || "-"} | 📊 Complex: ${row["Complexidade"] || "-"}<br>`;
-            ticketsHtml += `✅ Status Aprovação: ${statusAprovacaoStorage[index] || row["Status Aprovação"] || "-"}</p></div>`;
-            
-            if (reasonHistory[index] && reasonHistory[index].length > 0) {
-                ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
-                reasonHistory[index].forEach(entry => {
-                    ticketsHtml += `<div class="bg-white rounded p-2 mb-2 text-sm">${entry.reason} <span class="text-gray-500 text-xs">${entry.formattedTime}</span></div>`;
-                });
-                ticketsHtml += `</div>`;
-            }
-            
-            if (tickets.length > 0) {
-                ticketsHtml += `<div><h4 class="font-semibold mb-2">Tickets (${tickets.length}):</h4>`;
-                tickets.forEach((ticket, i) => {
-                    ticketsHtml += `<div class="bg-gray-50 rounded-lg p-3 mb-2"><div class="flex justify-between"><div><p class="font-semibold">#${ticket.numero} - ${ticket.status}</p><p class="text-sm">${ticket.descricao}</p><p class="text-xs text-gray-500">${ticket.formattedTime || formatTimestamp(ticket.data)}</p></div></div></div>`;
-                });
-                ticketsHtml += `</div>`;
-            }
-            
-            ticketsHtml += `<div class="mt-4"><label class="font-semibold mb-2 block">Novo Ticket:</label><textarea id="ticketDesc" class="w-full border rounded-lg p-3" rows="3" placeholder="Descreva o problema..."></textarea><div class="flex gap-3 mt-3"><select id="ticketStatus" class="border rounded-lg p-2 flex-1"><option value="aberto">🟢 Aberto</option><option value="andamento">🟡 Em Andamento</option></select><button onclick="addTicket()" class="btn-primary">Adicionar</button></div></div></div>`;
-            modalBody.innerHTML = ticketsHtml;
-            modal.classList.add("active");
-        }
-
-        function addTicket() {
-            const desc = document.getElementById("ticketDesc").value;
-            const status = document.getElementById("ticketStatus").value;
-            if (!desc.trim()) { alert("Descreva o ticket"); return; }
-            const timestamp = new Date().toISOString();
-            const tickets = ticketStorage[currentEditIndex] || [];
-            tickets.push({ numero: tickets.length + 1, descricao: desc, status: status, data: timestamp, formattedTime: formatTimestamp(timestamp) });
-            ticketStorage[currentEditIndex] = tickets;
-            saveToStorage();
-            openTicketModal(currentEditIndex);
-            renderTickets();
-            showNotification(`Ticket #${tickets.length} adicionado`, 'success');
-        }
-
-        function concludeRepair(index) {
-            const row = { ...excelData[index] };
-            const conclusionTimestamp = new Date().toISOString();
-            row.dataConclusao = conclusionTimestamp;
-            row.dataConclusaoFormatada = formatTimestamp(conclusionTimestamp);
-            row["Status Aprovação"] = statusAprovacaoStorage[index] || row["Status Aprovação"] || "-";
-            if (vehicleNotDeliveredReasons[index]) row["Veículo não Entregue"] = vehicleNotDeliveredReasons[index];
-            else row["Veículo não Entregue"] = "";
-            if (criticalStatus[index]) row["Crítico"] = criticalStatus[index];
-            else row["Crítico"] = "Não";
-            if (reasonHistory[index] && reasonHistory[index].length > 0) row["Histórico de Motivos"] = JSON.stringify(reasonHistory[index]);
-            if (ticketStorage[index] && ticketStorage[index].length > 0) {
-                row["Tickets"] = JSON.stringify(ticketStorage[index]);
-                row["Quantidade de Tickets"] = ticketStorage[index].length;
-            } else row["Quantidade de Tickets"] = 0;
-            
-            concludedData.push(row);
-            excelData.splice(index, 1);
-            delete ticketStorage[index];
-            delete vehicleNotDeliveredReasons[index];
-            delete reasonHistory[index];
-            delete criticalStatus[index];
-            delete statusAprovacaoStorage[index];
-            
-            const newStorages = {};
-            for (const storage of [ticketStorage, vehicleNotDeliveredReasons, reasonHistory, criticalStatus, statusAprovacaoStorage]) {
-                const newStorage = {};
-                Object.keys(storage).forEach(key => {
-                    const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
-                    newStorage[newKey] = storage[key];
-                });
-                Object.assign(storage, newStorage);
-            }
-            
-            saveToStorage();
-            renderTickets();
-            renderConcluded();
-            updateBadges();
-            if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
-            showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
-        }
-
-        function applyFilters() {
-            renderTickets();
-            renderConcluded();
-            updateBadges();
-            if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
-            
-            const filterInfo = document.getElementById("filterInfo");
-            const filterText = document.getElementById("filterText");
-            let filterMessages = [];
-            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
-            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
-            if (currentStatusAprovacao) filterMessages.push(`Status: ${currentStatusAprovacao}`);
-            
-            if (filterMessages.length > 0) {
-                filterInfo.classList.remove("hidden");
-                filterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
-            } else {
-                filterInfo.classList.add("hidden");
-            }
         }
 
         function renderTickets() {
@@ -1406,7 +1480,7 @@
                 html += `<td><select class="critical-select" onchange="updateCriticalStatus(${originalIndex}, this.value)">${criticalOptionsHtml}</select></td>`;
                 html += `<td class="whitespace-nowrap"><button class="btn-secondary text-xs py-1 px-2 mr-1" onclick="openTicketModal(${originalIndex})"><i class="fas fa-ticket-alt"></i> (${tickets.length})</button><button class="btn-primary text-xs py-1 px-2" onclick="concludeRepair(${originalIndex})"><i class="fas fa-check-circle"></i> Concluir</button></td></tr>`;
             });
-            html += `</tbody><table></div>`;
+            html += `</tbody></td></div>`;
             container.innerHTML = html;
         }
 
@@ -1442,6 +1516,9 @@
             container.innerHTML = html;
         }
 
+        // ============================================
+        // PERFORMANCE E CALENDÁRIO
+        // ============================================
         function renderPerformance() {
             const responsavelStats = {};
             responsaveisList.forEach(r => { responsavelStats[r.value] = { andamento: 0, concluidos: 0, total: 0 }; });
@@ -1510,6 +1587,30 @@
             calendarContainer.innerHTML = html;
         }
 
+        // ============================================
+        // FILTROS E BADGES
+        // ============================================
+        function applyFilters() {
+            renderTickets();
+            renderConcluded();
+            updateBadges();
+            if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
+            
+            const filterInfo = document.getElementById("filterInfo");
+            const filterText = document.getElementById("filterText");
+            let filterMessages = [];
+            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            if (currentStatusAprovacao) filterMessages.push(`Status: ${currentStatusAprovacao}`);
+            
+            if (filterMessages.length > 0) {
+                filterInfo.classList.remove("hidden");
+                filterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
+            } else {
+                filterInfo.classList.add("hidden");
+            }
+        }
+
         function handleResponsavelChange() {
             currentResponsavel = document.getElementById("userSelect").value || null;
             if (currentResponsavel) {
@@ -1553,6 +1654,103 @@
             else { concludedBadge.classList.add("hidden"); }
         }
 
+        // ============================================
+        // EXPORTAÇÃO
+        // ============================================
+        function exportToExcel(data, filename, sheetName) {
+            if (!data || data.length === 0) {
+                alert("Não há dados para exportar!");
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            XLSX.writeFile(wb, `${filename}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+            showNotification(`Exportação concluída: ${filename}`, 'success');
+        }
+
+        function exportTickets() {
+            let filteredData = [...excelData];
+            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusAprovacao) filteredData = filteredData.filter(row => statusAprovacaoStorage[excelData.findIndex(r => r === row)] === currentStatusAprovacao);
+            
+            const exportData = filteredData.map(row => {
+                const idx = excelData.findIndex(r => r === row);
+                const tickets = ticketStorage[idx] || [];
+                return {
+                    "Placa": row["Placa"],
+                    "Técnico": row["Cons.Técnico"],
+                    "Responsável": row["Responsável"],
+                    "Equipe": row["Equipe"],
+                    "Oficina": row["Oficina"],
+                    "Marca/Modelo": row["Marca/Modelo"],
+                    "Data Aviso": row["Data Aviso"],
+                    "Complexidade": row["Complexidade"],
+                    "Status Aprovação": statusAprovacaoStorage[idx] || "-",
+                    "Motivo Não Entrega": vehicleNotDeliveredReasons[idx] || "",
+                    "Crítico": criticalStatus[idx] || "Não",
+                    "Qtd Tickets": tickets.length,
+                    "Tickets": tickets.map(t => `#${t.numero}: ${t.descricao} (${t.status})`).join(" | ")
+                };
+            });
+            exportToExcel(exportData, "acompanhamento_reparos", "Em Andamento");
+        }
+
+        function exportConcluded() {
+            let filteredData = [...concludedData];
+            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            
+            const exportData = filteredData.map(row => ({
+                "Placa": row["Placa"],
+                "Técnico": row["Cons.Técnico"],
+                "Responsável": row["Responsável"],
+                "Equipe": row["Equipe"],
+                "Oficina": row["Oficina"],
+                "Marca/Modelo": row["Marca/Modelo"],
+                "Data Aviso": row["Data Aviso"],
+                "Complexidade": row["Complexidade"],
+                "Status Aprovação": row["Status Aprovação"] || "-",
+                "Motivo Não Entrega": row["Veículo não Entregue"] || "",
+                "Crítico": row["Crítico"] || "Não",
+                "Data Conclusão": row.dataConclusaoFormatada || "",
+                "Quantidade Tickets": row["Quantidade de Tickets"] || 0
+            }));
+            exportToExcel(exportData, "reparos_concluidos", "Concluídos");
+        }
+
+        function exportPerformance() {
+            const performanceData = [];
+            for (const resp of responsaveisList) {
+                const andamento = excelData.filter(item => item["Responsável"] === resp.value).length;
+                const concluidos = concludedData.filter(item => item["Responsável"] === resp.value).length;
+                const total = andamento + concluidos;
+                const taxa = total > 0 ? ((concluidos / total) * 100).toFixed(1) : 0;
+                performanceData.push({ "Responsável": resp.label, "Em Andamento": andamento, "Concluídos": concluidos, "Total": total, "Taxa de Conclusão": `${taxa}%` });
+            }
+            
+            const dailyStats = {};
+            concludedData.forEach(item => {
+                if (item.dataConclusao) {
+                    const date = new Date(item.dataConclusao).toLocaleDateString('pt-BR');
+                    dailyStats[date] = (dailyStats[date] || 0) + 1;
+                }
+            });
+            
+            const dailyData = Object.entries(dailyStats).map(([data, quantidade]) => ({ "Data": data, "Conclusões": quantidade }))
+                .sort((a, b) => new Date(a.Data.split('/').reverse().join('-')) - new Date(b.Data.split('/').reverse().join('-')));
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(performanceData), "Performance por Responsável");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyData), "Produtividade Diária");
+            XLSX.writeFile(wb, `relatorio_performance_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+            showNotification("Relatório de performance exportado!", 'success');
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
         function init() {
             loadFromStorage();
             
