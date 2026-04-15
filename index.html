@@ -516,10 +516,22 @@
                         <div class="relative">
                             <i class="fas fa-chart-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                             <select id="complexityFilter" class="filter-select pl-9">
-                                <option value="">Todas</option>
+                                <option value="">🎯 Todas Complexidades</option>
                                 <option value="1">1</option>
                                 <option value="2">2</option>
                                 <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-tag absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <select id="statusChamadoFilter" class="filter-select pl-9">
+                                <option value="">📌 Todos os Status</option>
+                                <option value="Aprovado">✅ Aprovado</option>
+                                <option value="Documentos Fiscais">📄 Documentos Fiscais</option>
+                                <option value="Veículo Entregue ao Consumidor">🚗 Veículo Entregue ao Consumidor</option>
+                                <option value="Pago">💰 Pago</option>
+                                <option value="Documentos Fiscais em Análise">🔍 Documentos Fiscais em Análise</option>
+                                <option value="Liberado para pagamento">📝 Liberado para pagamento</option>
                             </select>
                         </div>
                     </div>
@@ -749,12 +761,11 @@
                                         </tr>
                                     </thead>
                                     <tbody id="avgTableBody">
-                                        <tr><td colspan="3" class="text-center py-8 text-gray-500">Carregando...</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                                        <tr><td colspan="3" class="text-center py-8 text-gray-500">Carregando...<\/td><\/tr><\/tbody>
+                                <\/table>
+                            <\/div>
+                        <\/div>
+                    <\/div>
 
                     <!-- Calendário de Produtividade -->
                     <div class="performance-card">
@@ -812,7 +823,7 @@
     </div>
 
     <script>
-        // Data stores - PERSISTENTES (independente do usuário)
+        // Data stores - PERSISTENTES
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
@@ -822,6 +833,7 @@
         let uploadHistory = [];
         let currentResponsavel = null;
         let currentComplexity = null;
+        let currentStatusChamado = null;
         let currentTeam = null;
         let currentEditIndex = null;
 
@@ -829,6 +841,16 @@
         let performanceChart = null;
         let statusChart = null;
         let dailyChart = null;
+
+        // Opções para o filtro de Status Chamado
+        const statusChamadoOptions = [
+            "Aprovado",
+            "Documentos Fiscais",
+            "Veículo Entregue ao Consumidor",
+            "Pago",
+            "Documentos Fiscais em Análise",
+            "Liberado para pagamento"
+        ];
 
         // Mapeamento de Técnico para Responsável
         const tecnicoResponsavelMap = new Map([
@@ -957,7 +979,7 @@
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            XLSX.writeFile(wb, `${filename}_${new Date().toLocaleDateString('pt-BR')}.xlsx`);
+            XLSX.writeFile(wb, `${filename}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
             showNotification(`Exportação concluída: ${filename}`, 'success');
         }
 
@@ -968,6 +990,9 @@
             }
             if (currentComplexity) {
                 filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            }
+            if (currentStatusChamado) {
+                filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             }
             
             const exportData = filteredData.map(row => ({
@@ -995,6 +1020,9 @@
             }
             if (currentComplexity) {
                 filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            }
+            if (currentStatusChamado) {
+                filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             }
             
             const exportData = filteredData.map(row => ({
@@ -1055,7 +1083,7 @@
             
             XLSX.utils.book_append_sheet(wb, ws1, "Performance por Responsável");
             XLSX.utils.book_append_sheet(wb, ws2, "Produtividade Diária");
-            XLSX.writeFile(wb, `relatorio_performance_${new Date().toLocaleDateString('pt-BR')}.xlsx`);
+            XLSX.writeFile(wb, `relatorio_performance_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
             
             showNotification("Relatório de performance exportado!", 'success');
         }
@@ -1366,7 +1394,7 @@
                         <select id="ticketStatus" class="border rounded-lg p-2 flex-1">
                             <option value="aberto">🔵 Aberto</option>
                             <option value="andamento">🟡 Em Andamento</option>
-                           <option value="concluido">🟢 Concluído</option>
+                            <option value="concluido">🟢 Concluído</option>
                         </select>
                         <button onclick="addTicket()" class="btn-primary">Adicionar</button>
                     </div>
@@ -1480,6 +1508,20 @@
             if (document.getElementById("performanceTab").style.display !== "none") {
                 renderPerformance();
             }
+            
+            const filterInfo = document.getElementById("filterInfo");
+            const filterText = document.getElementById("filterText");
+            let filterMessages = [];
+            if (currentResponsavel) filterMessages.push(`Responsável: ${currentResponsavel}`);
+            if (currentComplexity) filterMessages.push(`Complexidade: ${currentComplexity}`);
+            if (currentStatusChamado) filterMessages.push(`Status: ${currentStatusChamado}`);
+            
+            if (filterMessages.length > 0) {
+                filterInfo.classList.remove("hidden");
+                filterText.innerHTML = `<i class="fas fa-filter mr-2"></i>Filtrando por: ${filterMessages.join(" | ")}`;
+            } else {
+                filterInfo.classList.add("hidden");
+            }
         }
 
         function renderTickets() {
@@ -1492,6 +1534,9 @@
             }
             if (currentComplexity) {
                 filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            }
+            if (currentStatusChamado) {
+                filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             }
             
             totalSpan.textContent = filteredData.length;
@@ -1566,6 +1611,9 @@
             if (currentComplexity) {
                 filteredData = filteredData.filter(item => item["Complexidade"] === currentComplexity);
             }
+            if (currentStatusChamado) {
+                filteredData = filteredData.filter(item => item["Status Chamado"] === currentStatusChamado);
+            }
             
             if (filteredData.length === 0) {
                 container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i><p>Nenhum reparo concluído</p></div>`;
@@ -1583,7 +1631,7 @@
                 const criticalClass = row["Crítico"] === "Sim" ? "critical-badge-yes" : "critical-badge-no";
                 const statusChamadoClass = getStatusChamadoClass(row["Status Chamado"]);
                 
-                html += `<tr>
+                html += `<td>
                     <td class="font-semibold">${row["Placa"]}</td>
                     <td>${row["Cons.Técnico"]}</td>
                     <td>${row["Responsável"]}</td>
@@ -1759,14 +1807,21 @@
             applyFilters();
         }
 
+        function handleStatusChamadoChange() {
+            currentStatusChamado = document.getElementById("statusChamadoFilter").value || null;
+            applyFilters();
+        }
+
         function updateBadges() {
             let filteredData = [...excelData];
             if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusChamado) filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             
             let filteredConcluded = [...concludedData];
             if (currentResponsavel) filteredConcluded = filteredConcluded.filter(item => item["Responsável"] === currentResponsavel);
             if (currentComplexity) filteredConcluded = filteredConcluded.filter(item => item["Complexidade"] === currentComplexity);
+            if (currentStatusChamado) filteredConcluded = filteredConcluded.filter(item => item["Status Chamado"] === currentStatusChamado);
             
             const ticketsBadge = document.getElementById("ticketsBadge");
             const concludedBadge = document.getElementById("concludedBadge");
@@ -1790,6 +1845,7 @@
             userSelect.addEventListener("change", handleResponsavelChange);
             
             document.getElementById("complexityFilter").addEventListener("change", handleComplexityChange);
+            document.getElementById("statusChamadoFilter").addEventListener("change", handleStatusChamadoChange);
             
             // Botões de exportação
             document.getElementById("exportTicketsBtn").addEventListener("click", exportTickets);
