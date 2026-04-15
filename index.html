@@ -506,6 +506,44 @@
             gap: 0.5rem;
             align-items: center;
         }
+
+        /* Estilos para tickets */
+        .ticket-item {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #8b5cf6;
+            transition: all 0.2s ease;
+        }
+
+        .ticket-item:hover {
+            background: #f1f5f9;
+            transform: translateX(4px);
+        }
+
+        .ticket-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .ticket-status-aberto {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .ticket-status-andamento {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .ticket-status-concluido {
+            background: #d1fae5;
+            color: #059669;
+        }
     </style>
 </head>
 <body>
@@ -809,13 +847,13 @@
         </footer>
     </div>
 
-    <!-- Modais -->
+    <!-- Modal para Tickets -->
     <div id="ticketModal" class="modal">
         <div class="modal-content p-6">
             <div class="flex justify-between items-center mb-5">
                 <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <i class="fas fa-ticket-alt text-purple-600"></i>
-                    <span>Gerenciar Ticket</span>
+                    <span>Gerenciar Tickets</span>
                 </h3>
                 <button class="closeModal text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-xl"></i>
@@ -841,7 +879,9 @@
     </div>
 
     <script>
-        // Data stores - PERSISTENTES
+        // ============================================
+        // DATA STORES - PERSISTENTES
+        // ============================================
         let excelData = [];
         let concludedData = [];
         let ticketStorage = {};
@@ -933,6 +973,9 @@
 
         const criticalOptions = ["Sim", "Não"];
 
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
         function getStatusChamadoClass(status) {
             if (!status || status === "-") return "";
             if (status === "Aprovado") return "status-chamado-aprovado";
@@ -976,6 +1019,9 @@
                 
                 const storedUploadHistory = localStorage.getItem("uploadHistory");
                 if (storedUploadHistory) uploadHistory = JSON.parse(storedUploadHistory);
+                
+                console.log("✅ Dados carregados do localStorage");
+                console.log("📊 Tickets armazenados:", Object.keys(ticketStorage).length);
             } catch(e) { console.error(e); }
         }
 
@@ -987,6 +1033,8 @@
             localStorage.setItem("reasonHistory", JSON.stringify(reasonHistory));
             localStorage.setItem("criticalStatus", JSON.stringify(criticalStatus));
             localStorage.setItem("uploadHistory", JSON.stringify(uploadHistory));
+            
+            console.log("💾 Dados salvos no localStorage");
         }
 
         // Funções de Exportação
@@ -1005,45 +1053,39 @@
 
         function exportTickets() {
             let filteredData = [...excelData];
-            if (currentResponsavel) {
-                filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
-            }
-            if (currentComplexity) {
-                filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            }
-            if (currentStatusChamado) {
-                filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
-            }
+            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusChamado) filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             
-            const exportData = filteredData.map(row => ({
-                "Placa": row["Placa"],
-                "Técnico": row["Cons.Técnico"],
-                "Responsável": row["Responsável"],
-                "Equipe": row["Equipe"],
-                "Oficina": row["Oficina"],
-                "Marca/Modelo": row["Marca/Modelo"],
-                "Data Aviso": row["Data Aviso"],
-                "Complexidade": row["Complexidade"],
-                "Status Chamado": row["Status Chamado"] || "-",
-                "Motivo Não Entrega": vehicleNotDeliveredReasons[excelData.findIndex(r => r === row)] || "",
-                "Crítico": criticalStatus[excelData.findIndex(r => r === row)] || "Não",
-                "Status": "Em Andamento"
-            }));
+            const exportData = filteredData.map(row => {
+                const idx = excelData.findIndex(r => r === row);
+                const tickets = ticketStorage[idx] || [];
+                return {
+                    "Placa": row["Placa"],
+                    "Técnico": row["Cons.Técnico"],
+                    "Responsável": row["Responsável"],
+                    "Equipe": row["Equipe"],
+                    "Oficina": row["Oficina"],
+                    "Marca/Modelo": row["Marca/Modelo"],
+                    "Data Aviso": row["Data Aviso"],
+                    "Complexidade": row["Complexidade"],
+                    "Status Chamado": row["Status Chamado"] || "-",
+                    "Motivo Não Entrega": vehicleNotDeliveredReasons[idx] || "",
+                    "Crítico": criticalStatus[idx] || "Não",
+                    "Status": "Em Andamento",
+                    "Qtd Tickets": tickets.length,
+                    "Tickets": tickets.map(t => `#${t.numero}: ${t.descricao} (${t.status})`).join(" | ")
+                };
+            });
             
             exportToExcel(exportData, "acompanhamento_reparos", "Em Andamento");
         }
 
         function exportConcluded() {
             let filteredData = [...concludedData];
-            if (currentResponsavel) {
-                filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
-            }
-            if (currentComplexity) {
-                filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            }
-            if (currentStatusChamado) {
-                filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
-            }
+            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusChamado) filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             
             const exportData = filteredData.map(row => ({
                 "Placa": row["Placa"],
@@ -1067,23 +1109,14 @@
         function exportPerformance() {
             const performanceData = [];
             
-            // Dados por responsável
             for (const resp of responsaveisList) {
                 const andamento = excelData.filter(item => item["Responsável"] === resp.value).length;
                 const concluidos = concludedData.filter(item => item["Responsável"] === resp.value).length;
                 const total = andamento + concluidos;
                 const taxa = total > 0 ? ((concluidos / total) * 100).toFixed(1) : 0;
-                
-                performanceData.push({
-                    "Responsável": resp.label,
-                    "Em Andamento": andamento,
-                    "Concluídos": concluidos,
-                    "Total": total,
-                    "Taxa de Conclusão": `${taxa}%`
-                });
+                performanceData.push({ "Responsável": resp.label, "Em Andamento": andamento, "Concluídos": concluidos, "Total": total, "Taxa de Conclusão": `${taxa}%` });
             }
             
-            // Dados diários
             const dailyStats = {};
             concludedData.forEach(item => {
                 if (item.dataConclusao) {
@@ -1092,10 +1125,8 @@
                 }
             });
             
-            const dailyData = Object.entries(dailyStats).map(([data, quantidade]) => ({
-                "Data": data,
-                "Conclusões": quantidade
-            })).sort((a, b) => new Date(a.Data.split('/').reverse().join('-')) - new Date(b.Data.split('/').reverse().join('-')));
+            const dailyData = Object.entries(dailyStats).map(([data, quantidade]) => ({ "Data": data, "Conclusões": quantidade }))
+                .sort((a, b) => new Date(a.Data.split('/').reverse().join('-')) - new Date(b.Data.split('/').reverse().join('-')));
             
             const wb = XLSX.utils.book_new();
             const ws1 = XLSX.utils.json_to_sheet(performanceData);
@@ -1104,7 +1135,6 @@
             XLSX.utils.book_append_sheet(wb, ws1, "Performance por Responsável");
             XLSX.utils.book_append_sheet(wb, ws2, "Produtividade Diária");
             XLSX.writeFile(wb, `relatorio_performance_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
-            
             showNotification("Relatório de performance exportado!", 'success');
         }
 
@@ -1169,6 +1199,9 @@
             });
         }
 
+        // ============================================
+        // FUNÇÕES DE ATUALIZAÇÃO
+        // ============================================
         function updateDeliveryReason(index, reason) {
             const timestamp = new Date().toISOString();
             vehicleNotDeliveredReasons[index] = reason;
@@ -1177,7 +1210,7 @@
                 reasonHistory[index].push({ reason, timestamp, formattedTime: formatTimestamp(timestamp) });
             }
             saveToStorage();
-            if (reason) showNotification(`Motivo "${reason}" registrado em ${formatTimestamp(timestamp)}`, 'success');
+            if (reason) showNotification(`Motivo "${reason}" registrado`, 'success');
         }
 
         function updateCriticalStatus(index, value) {
@@ -1227,13 +1260,14 @@
                     detailsHtml += `</div>`;
                 }
             }
-            
             detailsHtml += `</div>`;
             modalBody.innerHTML = detailsHtml;
             modal.classList.add("active");
         }
 
-        // Process Excel file - CORRIGIDO para extrair corretamente a Coluna V
+        // ============================================
+        // PROCESSAR EXCEL
+        // ============================================
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -1258,14 +1292,11 @@
                 
                 const placaIndex = findColumnIndex(["Placa", "placa"]);
                 const tecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
-                const oficinaIndex = 0; // Coluna A
-                const dataAtivacaoIndex = 20; // Coluna U
-                const marcaModeloIndex = 14; // Coluna O
-                const complexidadeIndex = 33; // Coluna AH
-                const statusChamadoIndex = 21; // Coluna V (CORRIGIDO - índice 21)
-                
-                console.log("🔍 Iniciando processamento do arquivo Excel...");
-                console.log("📌 Status Chamado - Índice da coluna:", statusChamadoIndex);
+                const oficinaIndex = 0;
+                const dataAtivacaoIndex = 20;
+                const marcaModeloIndex = 14;
+                const complexidadeIndex = 33;
+                const statusChamadoIndex = 21;
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1279,24 +1310,10 @@
                     const responsavelInfo = getResponsavelAndEquipeByTecnico(tecnicoNome);
                     let complexidade = (complexidadeIndex < row.length && row[complexidadeIndex]) ? String(row[complexidadeIndex]).trim() : "-";
                     
-                    if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") {
-                        complexidade = "-";
-                    }
+                    if (complexidade !== "1" && complexidade !== "2" && complexidade !== "3") complexidade = "-";
                     
-                    // CORREÇÃO: Extrair o Status Chamado da Coluna V (índice 21)
-                    let statusChamado = "-";
-                    if (statusChamadoIndex < row.length && row[statusChamadoIndex]) {
-                        statusChamado = String(row[statusChamadoIndex]).trim();
-                        // Se o valor for vazio ou undefined, manter como "-"
-                        if (statusChamado === "" || statusChamado === "undefined") {
-                            statusChamado = "-";
-                        }
-                    }
-                    
-                    // Log para debug
-                    if (i <= 5) {
-                        console.log(`Linha ${i}: Placa=${row[placaIndex]}, Status Chamado (Coluna V)=${statusChamado}`);
-                    }
+                    let statusChamado = (statusChamadoIndex < row.length && row[statusChamadoIndex]) ? String(row[statusChamadoIndex]).trim() : "-";
+                    if (statusChamado === "" || statusChamado === "undefined") statusChamado = "-";
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -1312,14 +1329,11 @@
                         "dataUpload": new Date().toISOString()
                     };
                     
-                    if (item.Placa !== "-") {
-                        novosDados.push(item);
-                    }
+                    if (item.Placa !== "-") novosDados.push(item);
                 }
                 
                 const placasExistentes = new Set(excelData.map(item => item.Placa));
-                let duplicados = 0;
-                let adicionados = 0;
+                let duplicados = 0, adicionados = 0;
                 
                 for (const novo of novosDados) {
                     if (!placasExistentes.has(novo.Placa)) {
@@ -1330,7 +1344,6 @@
                     }
                 }
                 
-                // Contar quantos registros têm Status Chamado preenchido
                 const comStatusPreenchido = novosDados.filter(item => item["Status Chamado"] !== "-").length;
                 
                 const uploadRecord = {
@@ -1351,12 +1364,10 @@
                     Arquivo carregado: ${file.name}<br>
                     <span class="text-sm block mt-2">
                         📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>
-                        📌 Coluna AH (Complexidade) importada<br>
-                        📌 Coluna V (Status Chamado) importada - ${comStatusPreenchido} registros com status preenchido
+                        📌 Coluna V (Status Chamado) importada - ${comStatusPreenchido} registros com status
                     </span>
                 `;
                 document.getElementById("uploadInfo").classList.remove("hidden");
-                
                 showNotification(`✅ Upload concluído! ${adicionados} novos reparos adicionados.`, 'success');
             };
             reader.readAsArrayBuffer(file);
@@ -1368,116 +1379,173 @@
                 container.innerHTML = `<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>Nenhum upload realizado ainda</div>`;
                 return;
             }
-            
             let html = `<div class="space-y-3">`;
             uploadHistory.forEach((upload) => {
-                html += `
-                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <p class="font-semibold">📄 ${upload.nome}</p>
-                        <p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p>
-                        <div class="flex gap-4 mt-2 text-xs">
-                            <span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>
-                            ${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}
-                        </div>
-                    </div>
-                `;
+                html += `<div class="bg-gray-50 rounded-xl p-4 border border-gray-100"><p class="font-semibold">📄 ${upload.nome}</p><p class="text-xs text-gray-500 mt-1">🕒 ${upload.dataFormatada}</p><div class="flex gap-4 mt-2 text-xs"><span class="text-green-600">✅ +${upload.registrosAdicionados} novos</span>${upload.registrosDuplicados > 0 ? `<span class="text-yellow-600">⚠️ ${upload.registrosDuplicados} duplicados</span>` : ''}</div></div>`;
             });
             html += `</div>`;
             container.innerHTML = html;
         }
 
-        function openTicketModal(index) {
+        // ============================================
+        // FUNÇÕES DE TICKETS - RECONSTRUÍDAS
+        // ============================================
+        window.openTicketModal = function(index) {
             currentEditIndex = index;
             const row = excelData[index];
             const tickets = ticketStorage[index] || [];
             const modal = document.getElementById("ticketModal");
             const modalBody = document.getElementById("modalBody");
             
-            let ticketsHtml = `<div class="space-y-4">`;
-            ticketsHtml += `<div class="bg-gray-50 rounded-lg p-4"><p class="font-semibold">🚗 Placa: ${row["Placa"] || "-"}</p>`;
-            ticketsHtml += `<p class="text-sm text-gray-600 mt-2">🏭 Oficina: ${row["Oficina"] || "-"} | 🚘 Modelo: ${row["Marca/Modelo"] || "-"}<br>`;
-            ticketsHtml += `📅 Data Aviso: ${row["Data Aviso"] || "-"} | 🔧 Técnico: ${row["Cons.Técnico"] || "-"}<br>`;
-            ticketsHtml += `👤 Responsável: ${row["Responsável"] || "-"} | 📊 Complex: ${row["Complexidade"] || "-"}<br>`;
-            ticketsHtml += `📋 Status Chamado: ${row["Status Chamado"] || "-"}</p></div>`;
+            let ticketsHtml = `
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4">
+                        <h4 class="font-bold text-gray-800 mb-2">📋 Informações do Veículo</h4>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div><span class="font-semibold">Placa:</span> ${row["Placa"] || "-"}</div>
+                            <div><span class="font-semibold">Técnico:</span> ${row["Cons.Técnico"] || "-"}</div>
+                            <div><span class="font-semibold">Responsável:</span> ${row["Responsável"] || "-"}</div>
+                            <div><span class="font-semibold">Oficina:</span> ${row["Oficina"] || "-"}</div>
+                            <div><span class="font-semibold">Data Aviso:</span> ${row["Data Aviso"] || "-"}</div>
+                            <div><span class="font-semibold">Complex:</span> ${row["Complexidade"] || "-"}</div>
+                            <div><span class="font-semibold">Status Chamado:</span> ${row["Status Chamado"] || "-"}</div>
+                        </div>
+                    </div>
+            `;
             
+            // Histórico de motivos
             if (reasonHistory[index] && reasonHistory[index].length > 0) {
-                ticketsHtml += `<div class="bg-blue-50 rounded-lg p-4"><h4 class="font-semibold mb-2">Histórico de Motivos:</h4>`;
+                ticketsHtml += `
+                    <div class="bg-blue-50 rounded-xl p-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">📜 Histórico de Motivos</h4>
+                        <div class="space-y-2 max-h-40 overflow-y-auto">
+                `;
                 reasonHistory[index].forEach(entry => {
-                    ticketsHtml += `<div class="bg-white rounded p-2 mb-2 text-sm">${entry.reason} <span class="text-gray-500 text-xs">${entry.formattedTime}</span></div>`;
+                    ticketsHtml += `<div class="bg-white rounded-lg p-2 text-sm"><span class="font-medium">${entry.reason}</span> <span class="text-gray-500 text-xs">${entry.formattedTime}</span></div>`;
                 });
-                ticketsHtml += `</div>`;
+                ticketsHtml += `</div></div>`;
             }
             
+            // Tickets existentes
             if (tickets.length > 0) {
-                ticketsHtml += `<div><h4 class="font-semibold mb-2">Tickets (${tickets.length}):</h4>`;
+                ticketsHtml += `
+                    <div class="bg-purple-50 rounded-xl p-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">🎫 Tickets (${tickets.length})</h4>
+                        <div class="space-y-3 max-h-60 overflow-y-auto">
+                `;
                 tickets.forEach((ticket, i) => {
+                    const statusClass = ticket.status === "aberto" ? "ticket-status-aberto" : (ticket.status === "andamento" ? "ticket-status-andamento" : "ticket-status-concluido");
+                    const statusText = ticket.status === "aberto" ? "Aberto" : (ticket.status === "andamento" ? "Em Andamento" : "Concluído");
                     ticketsHtml += `
-                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
-                            <div class="flex justify-between">
-                                <div>
-                                    <p class="font-semibold">#${ticket.numero} - ${ticket.status}</p>
-                                    <p class="text-sm">${ticket.descricao}</p>
-                                    <p class="text-xs text-gray-500">${ticket.formattedTime || formatTimestamp(ticket.data)}</p>
+                        <div class="ticket-item">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-bold text-purple-600">#${ticket.numero}</span>
+                                        <span class="ticket-status ${statusClass}">${statusText}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-700">${ticket.descricao}</p>
+                                    <p class="text-xs text-gray-400 mt-2">
+                                        <i class="far fa-clock mr-1"></i>${ticket.formattedTime || formatTimestamp(ticket.data)}
+                                    </p>
                                 </div>
+                                <button onclick="removeTicket(${i})" class="text-red-500 hover:text-red-700 ml-2 transition-colors">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </div>
                         </div>
                     `;
                 });
-                ticketsHtml += `</div>`;
+                ticketsHtml += `</div></div>`;
+            } else {
+                ticketsHtml += `
+                    <div class="bg-gray-50 rounded-xl p-4 text-center text-gray-500">
+                        <i class="fas fa-ticket-alt text-2xl mb-2 opacity-50"></i>
+                        <p>Nenhum ticket registrado</p>
+                    </div>
+                `;
             }
             
+            // Formulário para novo ticket
             ticketsHtml += `
-                <div class="mt-4">
-                    <label class="font-semibold mb-2 block">Novo Ticket:</label>
-                    <textarea id="ticketDesc" class="w-full border rounded-lg p-3" rows="3" placeholder="Descreva o problema..."></textarea>
+                <div class="border-t pt-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">➕ Adicionar Novo Ticket</h4>
+                    <textarea id="ticketDesc" class="w-full border border-gray-300 rounded-xl p-3 text-sm" rows="3" placeholder="Descreva o problema ou serviço..."></textarea>
                     <div class="flex gap-3 mt-3">
-                        <select id="ticketStatus" class="border rounded-lg p-2 flex-1">
-                            <option value="aberto">🔵 Aberto</option>
+                        <select id="ticketStatus" class="border border-gray-300 rounded-xl p-2 flex-1 text-sm">
+                            <option value="aberto">🔴 Aberto</option>
                             <option value="andamento">🟡 Em Andamento</option>
                             <option value="concluido">🟢 Concluído</option>
                         </select>
-                        <button onclick="addTicket()" class="btn-primary">Adicionar</button>
+                        <button onclick="addTicket()" class="btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Adicionar
+                        </button>
                     </div>
                 </div>
             </div>`;
             
             modalBody.innerHTML = ticketsHtml;
             modal.classList.add("active");
-        }
+        };
 
-        function addTicket() {
+        window.addTicket = function() {
             const desc = document.getElementById("ticketDesc").value;
             const status = document.getElementById("ticketStatus").value;
+            
             if (!desc.trim()) {
-                alert("Descreva o ticket");
+                showNotification("Por favor, descreva o ticket", "error");
                 return;
             }
+            
             const timestamp = new Date().toISOString();
             const tickets = ticketStorage[currentEditIndex] || [];
-            tickets.push({
+            const newTicket = {
                 numero: tickets.length + 1,
                 descricao: desc,
                 status: status,
                 data: timestamp,
                 formattedTime: formatTimestamp(timestamp)
-            });
+            };
+            
+            tickets.push(newTicket);
             ticketStorage[currentEditIndex] = tickets;
             saveToStorage();
+            
+            // Fecha o modal e reabre para atualizar
+            document.getElementById("ticketModal").classList.remove("active");
             openTicketModal(currentEditIndex);
             renderTickets();
-            showNotification(`Ticket #${tickets.length} adicionado`, 'success');
-        }
+            
+            showNotification(`✅ Ticket #${newTicket.numero} adicionado com sucesso!`, 'success');
+        };
 
-        function removeTicket(ticketIndex) {
+        window.removeTicket = function(ticketIndex) {
+            if (!confirm("Remover este ticket permanentemente?")) return;
+            
             const tickets = ticketStorage[currentEditIndex];
             tickets.splice(ticketIndex, 1);
-            if (tickets.length === 0) delete ticketStorage[currentEditIndex];
-            else ticketStorage[currentEditIndex] = tickets;
+            
+            if (tickets.length === 0) {
+                delete ticketStorage[currentEditIndex];
+            } else {
+                // Re-number tickets
+                tickets.forEach((t, i) => t.numero = i + 1);
+                ticketStorage[currentEditIndex] = tickets;
+            }
+            
             saveToStorage();
+            
+            // Fecha o modal e reabre para atualizar
+            document.getElementById("ticketModal").classList.remove("active");
             openTicketModal(currentEditIndex);
             renderTickets();
-        }
+            
+            showNotification(`🗑️ Ticket removido!`, 'success');
+        };
 
+        // ============================================
+        // CONCLUSÃO DE REPARO
+        // ============================================
         function concludeRepair(index) {
             const row = { ...excelData[index] };
             const conclusionTimestamp = new Date().toISOString();
@@ -1503,6 +1571,7 @@
             delete reasonHistory[index];
             delete criticalStatus[index];
             
+            // Re-index storages
             const newTicketStorage = {};
             Object.keys(ticketStorage).forEach(key => {
                 const newKey = parseInt(key) > index ? parseInt(key) - 1 : parseInt(key);
@@ -1535,19 +1604,18 @@
             renderTickets();
             renderConcluded();
             updateBadges();
-            if (document.getElementById("performanceTab").style.display !== "none") {
-                renderPerformance();
-            }
-            showNotification(`Reparo da placa ${row["Placa"]} concluído!`, 'success');
+            if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
+            showNotification(`✅ Reparo da placa ${row["Placa"]} concluído!`, 'success');
         }
 
+        // ============================================
+        // FILTROS E RENDERIZAÇÃO
+        // ============================================
         function applyFilters() {
             renderTickets();
             renderConcluded();
             updateBadges();
-            if (document.getElementById("performanceTab").style.display !== "none") {
-                renderPerformance();
-            }
+            if (document.getElementById("performanceTab").style.display !== "none") renderPerformance();
             
             const filterInfo = document.getElementById("filterInfo");
             const filterText = document.getElementById("filterText");
@@ -1569,15 +1637,9 @@
             const totalSpan = document.getElementById("ticketsTotalCount");
             
             let filteredData = [...excelData];
-            if (currentResponsavel) {
-                filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
-            }
-            if (currentComplexity) {
-                filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
-            }
-            if (currentStatusChamado) {
-                filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
-            }
+            if (currentResponsavel) filteredData = filteredData.filter(row => row["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(row => row["Complexidade"] === currentComplexity);
+            if (currentStatusChamado) filteredData = filteredData.filter(row => row["Status Chamado"] === currentStatusChamado);
             
             totalSpan.textContent = filteredData.length;
             
@@ -1588,7 +1650,7 @@
             
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
                 <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Status Chamado</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
-            <tr></thead><tbody>`;
+            </tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
@@ -1645,15 +1707,9 @@
             const container = document.getElementById("concludedList");
             
             let filteredData = [...concludedData];
-            if (currentResponsavel) {
-                filteredData = filteredData.filter(item => item["Responsável"] === currentResponsavel);
-            }
-            if (currentComplexity) {
-                filteredData = filteredData.filter(item => item["Complexidade"] === currentComplexity);
-            }
-            if (currentStatusChamado) {
-                filteredData = filteredData.filter(item => item["Status Chamado"] === currentStatusChamado);
-            }
+            if (currentResponsavel) filteredData = filteredData.filter(item => item["Responsável"] === currentResponsavel);
+            if (currentComplexity) filteredData = filteredData.filter(item => item["Complexidade"] === currentComplexity);
+            if (currentStatusChamado) filteredData = filteredData.filter(item => item["Status Chamado"] === currentStatusChamado);
             
             if (filteredData.length === 0) {
                 container.innerHTML = `<div class="text-center py-16 text-gray-500"><i class="fas fa-check-circle text-5xl mb-4 opacity-50"></i><p>Nenhum reparo concluído</p></div>`;
@@ -1693,31 +1749,12 @@
 
         function renderPerformance() {
             const responsavelStats = {};
-            responsaveisList.forEach(r => {
-                responsavelStats[r.value] = { andamento: 0, concluidos: 0, total: 0 };
-            });
+            responsaveisList.forEach(r => { responsavelStats[r.value] = { andamento: 0, concluidos: 0, total: 0 }; });
+            excelData.forEach(item => { const resp = item["Responsável"]; if (resp && responsavelStats[resp]) responsavelStats[resp].andamento++; });
+            concludedData.forEach(item => { const resp = item["Responsável"]; if (resp && responsavelStats[resp]) responsavelStats[resp].concluidos++; });
             
-            excelData.forEach(item => {
-                const resp = item["Responsável"];
-                if (resp && responsavelStats[resp]) {
-                    responsavelStats[resp].andamento++;
-                    responsavelStats[resp].total++;
-                }
-            });
-            
-            concludedData.forEach(item => {
-                const resp = item["Responsável"];
-                if (resp && responsavelStats[resp]) {
-                    responsavelStats[resp].concluidos++;
-                    responsavelStats[resp].total++;
-                }
-            });
-            
-            const totalAndamento = excelData.length;
-            const totalConcluidos = concludedData.length;
-            const totalGeral = totalAndamento + totalConcluidos;
+            const totalAndamento = excelData.length, totalConcluidos = concludedData.length, totalGeral = totalAndamento + totalConcluidos;
             const taxaConclusao = totalGeral > 0 ? ((totalConcluidos / totalGeral) * 100).toFixed(1) : 0;
-            
             document.getElementById("totalReparos").textContent = totalGeral;
             document.getElementById("totalAndamento").textContent = totalAndamento;
             document.getElementById("totalConcluidos").textContent = totalConcluidos;
@@ -1725,55 +1762,20 @@
             
             const ctx1 = document.getElementById("performanceChart").getContext("2d");
             if (performanceChart) performanceChart.destroy();
-            performanceChart = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(responsavelStats),
-                    datasets: [
-                        { label: 'Em Andamento', data: Object.values(responsavelStats).map(s => s.andamento), backgroundColor: '#3b82f6', borderRadius: 8 },
-                        { label: 'Concluídos', data: Object.values(responsavelStats).map(s => s.concluidos), backgroundColor: '#10b981', borderRadius: 8 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } }
-            });
+            performanceChart = new Chart(ctx1, { type: 'bar', data: { labels: Object.keys(responsavelStats), datasets: [{ label: 'Em Andamento', data: Object.values(responsavelStats).map(s => s.andamento), backgroundColor: '#3b82f6', borderRadius: 8 }, { label: 'Concluídos', data: Object.values(responsavelStats).map(s => s.concluidos), backgroundColor: '#10b981', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } } });
             
             const ctx2 = document.getElementById("statusChart").getContext("2d");
             if (statusChart) statusChart.destroy();
-            statusChart = new Chart(ctx2, {
-                type: 'doughnut',
-                data: { labels: ['Em Andamento', 'Concluídos'], datasets: [{ data: [totalAndamento, totalConcluidos], backgroundColor: ['#3b82f6', '#10b981'], borderWidth: 0 }] },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
+            statusChart = new Chart(ctx2, { type: 'doughnut', data: { labels: ['Em Andamento', 'Concluídos'], datasets: [{ data: [totalAndamento, totalConcluidos], backgroundColor: ['#3b82f6', '#10b981'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } } });
             
-            const dailyData = {};
-            const last30Days = [];
-            const today = new Date();
-            for (let i = 29; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(today.getDate() - i);
-                const dateStr = date.toLocaleDateString('pt-BR');
-                last30Days.push(dateStr);
-                dailyData[dateStr] = 0;
-            }
-            
-            concludedData.forEach(item => {
-                if (item.dataConclusao) {
-                    const date = new Date(item.dataConclusao);
-                    const dateStr = date.toLocaleDateString('pt-BR');
-                    if (dailyData[dateStr] !== undefined) dailyData[dateStr]++;
-                }
-            });
-            
+            const dailyData = {}, last30Days = [], today = new Date();
+            for (let i = 29; i >= 0; i--) { const date = new Date(); date.setDate(today.getDate() - i); const dateStr = date.toLocaleDateString('pt-BR'); last30Days.push(dateStr); dailyData[dateStr] = 0; }
+            concludedData.forEach(item => { if (item.dataConclusao) { const date = new Date(item.dataConclusao); const dateStr = date.toLocaleDateString('pt-BR'); if (dailyData[dateStr] !== undefined) dailyData[dateStr]++; } });
             const dailyValues = last30Days.map(d => dailyData[d] || 0);
             const avgDaily = (dailyValues.reduce((a, b) => a + b, 0) / 30).toFixed(1);
-            
             const ctx3 = document.getElementById("dailyProductivityChart").getContext("2d");
             if (dailyChart) dailyChart.destroy();
-            dailyChart = new Chart(ctx3, {
-                type: 'line',
-                data: { labels: last30Days, datasets: [{ label: `Conclusões (Média: ${avgDaily}/dia)`, data: dailyValues, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#8b5cf6' }] },
-                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } }
-            });
+            dailyChart = new Chart(ctx3, { type: 'line', data: { labels: last30Days, datasets: [{ label: `Conclusões (Média: ${avgDaily}/dia)`, data: dailyValues, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } } } } });
             
             const avgTableBody = document.getElementById("avgTableBody");
             const avgHtml = [];
@@ -1783,7 +1785,6 @@
                 avgHtml.push(`<tr><td class="py-2">${resp.label}</td><td class="text-center py-2">${avgDailyResp}/dia</td><td class="text-center py-2">${respConcluidos}</td>`);
             }
             avgTableBody.innerHTML = avgHtml.join("");
-            
             renderCalendar();
         }
 
@@ -1794,28 +1795,14 @@
             const currentYear = today.getFullYear();
             const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
             const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-            
             const conclusionsByDate = {};
-            concludedData.forEach(item => {
-                if (item.dataConclusao) {
-                    const date = new Date(item.dataConclusao);
-                    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                        const dateStr = date.getDate();
-                        conclusionsByDate[dateStr] = (conclusionsByDate[dateStr] || 0) + 1;
-                    }
-                }
-            });
-            
+            concludedData.forEach(item => { if (item.dataConclusao) { const date = new Date(item.dataConclusao); if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) { const dateStr = date.getDate(); conclusionsByDate[dateStr] = (conclusionsByDate[dateStr] || 0) + 1; } } });
             const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            
-            let html = `<div class="text-center mb-4"><h4 class="font-bold text-lg">${monthNames[currentMonth]} ${currentYear}</h4></div>`;
-            html += `<div class="calendar-grid">`;
+            let html = `<div class="text-center mb-4"><h4 class="font-bold text-lg">${monthNames[currentMonth]} ${currentYear}</h4></div><div class="calendar-grid">`;
             weekDays.forEach(day => { html += `<div class="text-center font-semibold text-sm py-2">${day}</div>`; });
-            
             const startOffset = firstDayOfMonth.getDay();
-            for (let i = 0; i < startOffset; i++) { html += `<div class="calendar-day opacity-50"></div>`; }
-            
+            for (let i = 0; i < startOffset; i++) html += `<div class="calendar-day opacity-50"></div>`;
             for (let d = 1; d <= lastDayOfMonth.getDate(); d++) {
                 const hasConclusion = conclusionsByDate[d] > 0;
                 const isToday = d === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
@@ -1828,6 +1815,9 @@
             calendarContainer.innerHTML = html;
         }
 
+        // ============================================
+        // HANDLERS E INICIALIZAÇÃO
+        // ============================================
         function handleResponsavelChange() {
             currentResponsavel = document.getElementById("userSelect").value || null;
             if (currentResponsavel) {
@@ -1865,7 +1855,6 @@
             
             const ticketsBadge = document.getElementById("ticketsBadge");
             const concludedBadge = document.getElementById("concludedBadge");
-            
             if (filteredData.length > 0) { ticketsBadge.textContent = filteredData.length; ticketsBadge.classList.remove("hidden"); }
             else { ticketsBadge.classList.add("hidden"); }
             if (filteredConcluded.length > 0) { concludedBadge.textContent = filteredConcluded.length; concludedBadge.classList.remove("hidden"); }
@@ -1876,18 +1865,11 @@
             loadFromStorage();
             
             const userSelect = document.getElementById("userSelect");
-            responsaveisList.forEach(r => {
-                const option = document.createElement("option");
-                option.value = r.value;
-                option.textContent = `👤 ${r.label} (${r.equipe})`;
-                userSelect.appendChild(option);
-            });
+            responsaveisList.forEach(r => { const option = document.createElement("option"); option.value = r.value; option.textContent = `👤 ${r.label} (${r.equipe})`; userSelect.appendChild(option); });
             userSelect.addEventListener("change", handleResponsavelChange);
-            
             document.getElementById("complexityFilter").addEventListener("change", handleComplexityChange);
             document.getElementById("statusChamadoFilter").addEventListener("change", handleStatusChamadoChange);
             
-            // Botões de exportação
             document.getElementById("exportTicketsBtn").addEventListener("click", exportTickets);
             document.getElementById("exportConcludedBtn").addEventListener("click", exportConcluded);
             document.getElementById("exportPerformanceBtn").addEventListener("click", exportPerformance);
@@ -1913,22 +1895,9 @@
             dropZone.addEventListener("click", () => fileInput.click());
             dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-active"); });
             dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-active"));
-            dropZone.addEventListener("drop", (e) => {
-                e.preventDefault();
-                dropZone.classList.remove("drag-active");
-                const file = e.dataTransfer.files[0];
-                if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) processExcelFile(file);
-                else alert("Envie um arquivo Excel");
-            });
+            dropZone.addEventListener("drop", (e) => { e.preventDefault(); dropZone.classList.remove("drag-active"); const file = e.dataTransfer.files[0]; if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) processExcelFile(file); else alert("Envie um arquivo Excel"); });
             fileInput.addEventListener("change", (e) => { if (e.target.files[0]) processExcelFile(e.target.files[0]); });
-            
-            document.getElementById("processFileBtn").addEventListener("click", () => {
-                if (excelData.length > 0) {
-                    document.querySelector(".nav-tab[data-tab='tickets']").click();
-                    renderTickets();
-                    updateBadges();
-                }
-            });
+            document.getElementById("processFileBtn").addEventListener("click", () => { if (excelData.length > 0) { document.querySelector(".nav-tab[data-tab='tickets']").click(); renderTickets(); updateBadges(); } });
             
             document.querySelectorAll(".closeModal").forEach(btn => btn.addEventListener("click", () => document.getElementById("ticketModal").classList.remove("active")));
             document.querySelectorAll(".closeDetailsModal").forEach(btn => btn.addEventListener("click", () => document.getElementById("detailsModal").classList.remove("active")));
