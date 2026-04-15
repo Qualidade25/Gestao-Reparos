@@ -215,19 +215,37 @@
             letter-spacing: 0.5px;
         }
 
-        .status-chamado-aberto {
-            background: linear-gradient(135deg, #fee2e2, #fecaca);
-            color: #dc2626;
-            border: 1px solid #f87171;
+        .status-chamado-aprovado {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #059669;
+            border: 1px solid #34d399;
         }
 
-        .status-chamado-andamento {
+        .status-chamado-documentos {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
             color: #d97706;
             border: 1px solid #fbbf24;
         }
 
-        .status-chamado-concluido {
+        .status-chamado-entregue {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #059669;
+            border: 1px solid #34d399;
+        }
+
+        .status-chamado-pago {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #059669;
+            border: 1px solid #34d399;
+        }
+
+        .status-chamado-analise {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #d97706;
+            border: 1px solid #fbbf24;
+        }
+
+        .status-chamado-liberado {
             background: linear-gradient(135deg, #d1fae5, #a7f3d0);
             color: #059669;
             border: 1px solid #34d399;
@@ -917,10 +935,12 @@
 
         function getStatusChamadoClass(status) {
             if (!status || status === "-") return "";
-            const statusLower = status.toLowerCase();
-            if (statusLower.includes("aberto") || statusLower === "aberto") return "status-chamado-aberto";
-            if (statusLower.includes("andamento") || statusLower === "em andamento") return "status-chamado-andamento";
-            if (statusLower.includes("concluído") || statusLower === "concluído") return "status-chamado-concluido";
+            if (status === "Aprovado") return "status-chamado-aprovado";
+            if (status === "Documentos Fiscais") return "status-chamado-documentos";
+            if (status === "Veículo Entregue ao Consumidor") return "status-chamado-entregue";
+            if (status === "Pago") return "status-chamado-pago";
+            if (status === "Documentos Fiscais em Análise") return "status-chamado-analise";
+            if (status === "Liberado para pagamento") return "status-chamado-liberado";
             return "";
         }
 
@@ -1213,7 +1233,7 @@
             modal.classList.add("active");
         }
 
-        // Process Excel file
+        // Process Excel file - CORRIGIDO para extrair corretamente a Coluna V
         function processExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -1238,11 +1258,14 @@
                 
                 const placaIndex = findColumnIndex(["Placa", "placa"]);
                 const tecnicoIndex = findColumnIndex(["Cons.Técnico", "cons.tecnico", "Técnico", "tecnico"]);
-                const oficinaIndex = 0;
-                const dataAtivacaoIndex = 20;
-                const marcaModeloIndex = 14;
-                const complexidadeIndex = 33;
-                const statusChamadoIndex = 21; // Coluna V (índice 21)
+                const oficinaIndex = 0; // Coluna A
+                const dataAtivacaoIndex = 20; // Coluna U
+                const marcaModeloIndex = 14; // Coluna O
+                const complexidadeIndex = 33; // Coluna AH
+                const statusChamadoIndex = 21; // Coluna V (CORRIGIDO - índice 21)
+                
+                console.log("🔍 Iniciando processamento do arquivo Excel...");
+                console.log("📌 Status Chamado - Índice da coluna:", statusChamadoIndex);
                 
                 const novosDados = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -1260,7 +1283,20 @@
                         complexidade = "-";
                     }
                     
-                    let statusChamado = (statusChamadoIndex < row.length && row[statusChamadoIndex]) ? String(row[statusChamadoIndex]).trim() : "-";
+                    // CORREÇÃO: Extrair o Status Chamado da Coluna V (índice 21)
+                    let statusChamado = "-";
+                    if (statusChamadoIndex < row.length && row[statusChamadoIndex]) {
+                        statusChamado = String(row[statusChamadoIndex]).trim();
+                        // Se o valor for vazio ou undefined, manter como "-"
+                        if (statusChamado === "" || statusChamado === "undefined") {
+                            statusChamado = "-";
+                        }
+                    }
+                    
+                    // Log para debug
+                    if (i <= 5) {
+                        console.log(`Linha ${i}: Placa=${row[placaIndex]}, Status Chamado (Coluna V)=${statusChamado}`);
+                    }
                     
                     const item = {
                         "Placa": placaIndex >= 0 && row[placaIndex] ? String(row[placaIndex]).toUpperCase() : "-",
@@ -1294,6 +1330,9 @@
                     }
                 }
                 
+                // Contar quantos registros têm Status Chamado preenchido
+                const comStatusPreenchido = novosDados.filter(item => item["Status Chamado"] !== "-").length;
+                
                 const uploadRecord = {
                     nome: file.name,
                     data: new Date().toISOString(),
@@ -1312,7 +1351,8 @@
                     Arquivo carregado: ${file.name}<br>
                     <span class="text-sm block mt-2">
                         📊 ${adicionados} novos registros adicionados | 🔄 ${duplicados} registros duplicados ignorados<br>
-                        📌 Coluna AH (Complexidade) e Coluna V (Status Chamado) importadas
+                        📌 Coluna AH (Complexidade) importada<br>
+                        📌 Coluna V (Status Chamado) importada - ${comStatusPreenchido} registros com status preenchido
                     </span>
                 `;
                 document.getElementById("uploadInfo").classList.remove("hidden");
@@ -1548,7 +1588,7 @@
             
             let html = `<div class="overflow-x-auto"><table class="min-w-full"><thead><tr>
                 <th>Placa</th><th>Técnico</th><th>Responsável</th><th>Equipe</th><th>Oficina</th><th>Modelo</th><th>Data Aviso</th><th>Complex</th><th>Status Chamado</th><th>Motivo</th><th>Status</th><th>30 dd</th><th>Crítico</th><th>Ações</th>
-            </tr></thead><tbody>`;
+            <tr></thead><tbody>`;
             
             filteredData.forEach((row, idx) => {
                 const originalIndex = excelData.findIndex((r, i) => r === row);
@@ -1631,7 +1671,7 @@
                 const criticalClass = row["Crítico"] === "Sim" ? "critical-badge-yes" : "critical-badge-no";
                 const statusChamadoClass = getStatusChamadoClass(row["Status Chamado"]);
                 
-                html += `<td>
+                html += `<tr>
                     <td class="font-semibold">${row["Placa"]}</td>
                     <td>${row["Cons.Técnico"]}</td>
                     <td>${row["Responsável"]}</td>
