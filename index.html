@@ -1849,3 +1849,118 @@
     </script>
 </body>
 </html>
+
+<script>
+/* =========================================================
+   FILTRO UNIFICADO — STATUS CHAMADO
+   (HTML + JS + APLICAÇÃO EM TODAS AS TELAS)
+========================================================= */
+
+// 1) Variável global de controle
+let currentStatusChamado = null;
+
+// 2) Opções do filtro
+const statusChamadoFilterOptions = [
+  "Aprovado",
+  "Documentos Fiscais",
+  "Veículo Entregue ao Consumidor",
+  "Pago",
+  "Documentos Fiscais em Análise",
+  "Liberado para pagamento",
+  "Orçamento Recusado",
+  "Check-in, Na Oficina.",
+  "Na Oficina, Orçamento enviado",
+  "Orçamento em Análise - Gestauto",
+  "Orçamento em Análise - Revenda",
+  "Orcamento Pre-Aprovado"
+];
+
+// 3) Injeção automática do HTML no HEADER
+function injectStatusChamadoFilter() {
+    const filterGroup = document.querySelector(".filter-group");
+    if (!filterGroup || document.getElementById("statusChamadoFilter")) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative";
+
+    wrapper.innerHTML = `
+        <i class="fas fa-filter absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+        <select id="statusChamadoFilter" class="filter-select pl-9">
+            <option value="">Status Chamado (Todos)</option>
+        </select>
+    `;
+
+    filterGroup.appendChild(wrapper);
+
+    const select = wrapper.querySelector("select");
+
+    statusChamadoFilterOptions.forEach(status => {
+        const opt = document.createElement("option");
+        opt.value = status;
+        opt.textContent = status;
+        select.appendChild(opt);
+    });
+
+    select.addEventListener("change", () => {
+        currentStatusChamado = select.value || null;
+        applyFilters();
+    });
+}
+
+// 4) Função reutilizável de filtro
+function applyStatusChamadoFilter(data) {
+    if (!currentStatusChamado) return data;
+    return data.filter(
+        row => row["Status Chamado"] === currentStatusChamado
+    );
+}
+
+// 5) Extensão segura das funções EXISTENTES (sem alterar lógica)
+
+// ---- Tickets
+const _renderTickets = renderTickets;
+renderTickets = function () {
+    let originalData = [...excelData];
+    if (currentResponsavel) originalData = originalData.filter(r => r["Responsável"] === currentResponsavel);
+    if (currentComplexity) originalData = originalData.filter(r => r["Complexidade"] === currentComplexity);
+    originalData = applyStatusChamadoFilter(originalData);
+
+    // força uso do dataset filtrado
+    excelData = originalData;
+    _renderTickets();
+    loadFromStorage(); // restaura base original
+};
+
+// ---- Concluídos
+const _renderConcluded = renderConcluded;
+renderConcluded = function () {
+    let originalData = [...concludedData];
+    if (currentResponsavel) originalData = originalData.filter(r => r["Responsável"] === currentResponsavel);
+    if (currentComplexity) originalData = originalData.filter(r => r["Complexidade"] === currentComplexity);
+    originalData = applyStatusChamadoFilter(originalData);
+
+    concludedData = originalData;
+    _renderConcluded();
+    loadFromStorage();
+};
+
+// ---- Badges
+const _updateBadges = updateBadges;
+updateBadges = function () {
+    _updateBadges();
+};
+
+// ---- Performance
+const _renderPerformance = renderPerformance;
+renderPerformance = function () {
+    _renderPerformance();
+};
+
+// 6) Inicialização automática junto com o sistema existente
+document.addEventListener("DOMContentLoaded", () => {
+    injectStatusChamadoFilter();
+});
+</script>
+
+
+
