@@ -2053,3 +2053,95 @@ renderTickets = function () {
 // Init
 document.addEventListener("DOMContentLoaded", injectStatusChamadoFilter);
 </script>
+<script>
+/* =========================================================
+   🔗 SINCRONIZAÇÃO MULTI-IP COM BD UNIFICADO (LEVE / LIMITADO)
+   Estratégia: API Central + Merge por PLACA (ID lógico)
+   ✔️ Não altera regras atuais
+   ✔️ Mantém LocalStorage como cache
+   ✔️ Resolve múltiplos IPs
+========================================================= */
+
+/* ========= CONFIGURAÇÃO ========= */
+// ▶️ Endpoint de um serviço simples (Node / Firebase / Supabase / API Gateway)
+const SYNC_API_URL = "https://SEU-ENDPOINT/api/repairs-sync";
+
+// ▶️ Intervalo de sincronização automática (ms)
+const SYNC_INTERVAL = 30_000; // 30 segundos
+
+// ▶️ Chave lógica única (controle de duplicidade)
+const UNIQUE_KEY = "Placa";
+
+/* ========= UTILIDADES ========= */
+function getUnifiedPayload() {
+    return {
+        excelData,
+        concludedData,
+        uploadedAt: new Date().toISOString(),
+        originIP: location.host
+    };
+}
+
+function mergeByKey(localArray, remoteArray, key) {
+    const map = new Map();
+    [...localArray, ...remoteArray].forEach(item => {
+        if (item[key]) map.set(item[key], item);
+    });
+    return [...map.values()];
+}
+
+/* ========= PUSH (ENVIO) ========= */
+async function pushToCentralBD() {
+    try {
+        await fetch(SYNC_API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(getUnifiedPayload())
+        });
+    } catch (e) {
+        console.warn("SYNC PUSH falhou", e);
+    }
+}
+
+/* ========= PULL (RECEPÇÃO) ========= */
+async function pullFromCentralBD() {
+    try {
+        const res = await fetch(SYNC_API_URL);
+        const data = await res.json();
+
+        if (!data) return;
+
+        excelData = mergeByKey(excelData, data.excelData || [], UNIQUE_KEY);
+        concludedData = mergeByKey(concludedData, data.concludedData || [], UNIQUE_KEY);
+
+        saveToStorage();
+    } catch (e) {
+        console.warn("SYNC PULL falhou", e);
+    }
+}
+
+/* ========= CICLO UNIFICADO ========= */
+async function syncUnifiedDatabase() {
+    await pullFromCentralBD();
+    await pushToCentralBD();
+    renderTickets();
+    renderConcluded();
+    updateBadges();
+}
+
+/* ========= AUTO-SYNC ========= */
+setInterval(syncUnifiedDatabase, SYNC_INTERVAL);
+
+/* ========= SYNC IMEDIATO EM EVENTOS ========= */
+const __saveToStorage_original = saveToStorage;
+saveToStorage = function () {
+    __saveToStorage_original();
+    pushToCentralBD();
+};
+
+/* ========= PRIMEIRA SINCRONIZAÇÃO ========= */
+document.addEventListener("DOMContentLoaded", syncUnifiedDatabase);
+</script>
+
+
+
